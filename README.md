@@ -1,4 +1,4 @@
-## GO 공부
+## Studying with GO
 
 * ### Problems
 
