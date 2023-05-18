@@ -1,6 +1,6 @@
-# GO 공부
+## GO 공부
 
-## Problems
+### Problems
 
 DBconnection
 
