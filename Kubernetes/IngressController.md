@@ -68,6 +68,55 @@ HAProxy를 설치한다.
 
     helm install myingress-controller haproxytech/kubernetes-ingress
 
+라우팅할 인그레스 룰을 정하기 위해 인그레스 리소스를 생성해준다.
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-controller
+spec:
+  ingressClassName: haproxy
+  rules:
+      - host: www.example.com
+      http:
+      paths:
+        - path: /
+          pathType: Prefix
+          backend:
+          service:
+              name: backend-service
+              port:
+                  number: 8080
+
+이제 haproxy가 배포된 pod가 배치된 노드의 publicIP:<NodePort>로 브라우저에서 접근이 가능하고 동시에 로드밸런싱도 인그레스 룰에 따라 진행할 수 있게 된다.
+SSL 설정 등의 고급 기능을 포함한 haproxy를 구현하려면 차트를 커스터마이즈해서 배포해야하는데, helm에 대한 이해도가 아직 낮기때문에, Helm에 대해 먼저 공부하고 이어서 진행하도록 하겠다.
+
+이제 로드밸런서에 연결해보겠다.
+
+대상그룹을 설정해야하는데 대상이 HAPROXY가 위치한 노드의 IP와 NodePort니까 타겟구성을 IP로 지정하고, 로드밸런서와 일치하게 tcp 80으로 설정한다.
+다음 단계인 대상으로는 HAPROXY가 위치한 노드의 **PrivateIP**를 입력해주고, 대상 포트로는 NodePort를 입력해준다.
+이제 로드밸런서를 NLB로 생성하고 tcp 80번 포트로 지정한다. 그럼 로드밸런서가 프로비저닝되고 DNS네임이 생성된다. 프로비저닝되는데 시간이 좀 걸리고, 완료된 이후에는 해당 DNS네임으로 80번포트(=포트입력 없이)에서 http 요청을 성공적으로 보낼 수 있게된다. 이 과정을 요약해보자면
+
+클라이언트에서 NLB DNSname으로 요청 -> NLB와 연결된 HAPROXY의 NodePort를 통해 트래픽이 들어온다 -> HAPROXY POD에서 Ingress 오브젝트와 K8S API서버를 참조해서 트래픽을 Ingress rules에 따라 라우팅한다 -> 트래픽이 정상적으로 백엔드 서비스에 도착한다 -> 백엔드 서비스가 트래픽을 Pod로 보낸다 -> Pod의 컨테이너에서 트래픽을 처리한다.
+
+이렇게 Ingress Controller 오브젝트 없이 HAPROXY를 통해 LoadBalancer 타입의 서비스를 지원하지 않는 kubeadm으로 baremetal 구성된 클러스터에서 클라이언트의 80포트 요청을 처리하는 방법을 알아보았다.
+참 한 줄로 정리하기도 길고 벅찬 내용이었다. 하지만 잘못알고있던 것들이 고쳐지고 새로운 지식을 흡수할 수 있어서 재밌었다!
+
+지금 현재는 AWS에서 제공하는 의미없는 문자열의 나열인 DNS Name을 통해 접속하는데, 이걸 내가 이전에 구매하고 등록해둔 도메인과 연결시키는 방법에 대해 알아보겠다. 이 과정을 거치면 도메인인 www.choigonyok.com으로 클러스터 백엔드 서비스에 접근이 가능해질 것이다!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

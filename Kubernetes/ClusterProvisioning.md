@@ -362,7 +362,6 @@ kubectl을 하면 호스트를 찾을 수 없다고 호스트나 포트가 정�
 
 [How to Install Containerd on Ubuntu 22.04 / Ubuntu 20.04](https://www.itzgeek.com/how-tos/linux/ubuntu-how-tos/install-containerd-on-ubuntu-22-04.html)
 
-
 [How To Setup Kubernetes Cluster Using Kubeadm](https://devopscube.com/setup-kubernetes-cluster-kubeadm/)
 
 [containerd를 런타임으로 사용한 Kubernetes 설치](https://docmoa.github.io/02-Private%20Platform/Kubernetes/02-Config/kubernetes_with_out_docker.html)
