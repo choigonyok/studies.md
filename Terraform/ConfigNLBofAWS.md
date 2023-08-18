@@ -125,6 +125,15 @@ protocol은 NLB이기 때문에 HTTP/HTTPS로는 설정이 불가능하고, TCP�
 
 액션은 로드밸런서가 어떤 형태로 라우팅할 것인지를 설정하는 부분이다.
 
+forward, redirect, fixed-response, authenticate-cognito, authenticate-oidc
+
+forward : 하나 이상의 대상그룹으로 트래픽을 분산
+fixed-response : HTTP 요청을 지정해서 라우팅할 때
+redirect : 말 그대로 리다이렉팅
+
+cognito는 보안을 위해 Amazon에서 제공하는 사용자 인증 서비스이고, OIDC는 사용자 인증 표준 프로토콜이다.
+authenticate-cognito와 authenticate-oidc는 사용자 인증을 위한 타입이다. 클라이언트가 로드밸런서로 요청을 보내면 우선 요청을 cognito 또는 OIDC로 보내고, 인증이 완료되면 토큰을 발급받는데, 이 토큰이 있어야지만 서비스로 요청을 라우팅하는 방식을 사용한다.
+
 
 
 ---
@@ -216,3 +225,4 @@ port는 트래픽이 라우팅될 port를 지정해주면 된다.
 ## 참고
 
 [테라폼 공식문서](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lb)
+

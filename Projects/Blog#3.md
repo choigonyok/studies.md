@@ -24,7 +24,7 @@ console.log(jsonArray.filter((post) => post.Id.includes(postid)));
 
 jsonArray는 서버로부터 받아온 같은 카테고리를 가진 게시글 데이터 배열이고, postid는 DB에서 기본키로 설정된 게시글의 id이다. 이 코드를 실행하면 오류가 발생한다. 오류 내용을 살펴보면,
 
-![1](/assets/8-2.png)
+![1](http://www.choigonyok.com/api/assets/25-1.png)
 
 post.Id.includes가 funcion이 아니라는 메시지가 콘솔에 출력된다. includes 대신 jsonArray의 element들 중에 post[0].Id가 postid와 같지 않은 것들만 남기는 방식으로 다시 구현했다.
 
@@ -34,13 +34,13 @@ console.log(jsonArray.filter((post) => post[0].Id !== postid));
 
 이렇게되면 postid(현재 보고있는 글)과 같은 id의 글만 related posts에서 필터링될 수 있을 것이다.
 
-![1](/assets/8-4.png)
+![1](http://www.choigonyok.com/api/assets/25-2.png)
 
 그랬더니 콘솔엔 postid와 post[0].Id가 둘 다 10으로 잘 출력되는데, 오류가 발생하는 걸 볼 수 있었다. 10 = 10이 틀렸다는 우리의 리액트
 
 > 가만보니 콘솔창의 두 10의 색상이 다르다.
 
-![1](/assets/8-5.png)
+![1](http://www.choigonyok.com/api/assets/25-3.png)
 
 이 보라색 10이 처음 서버에서 넘어올 때 클라이언트가 콘솔에 출력하는 게시글 데이터를 확인해봤다. 살펴보니 여기도 Id의 10이 보라색으로 출력된다. 그래서 백엔드 서버에서 데이터를 클라이언트에 전송하는 구조체를 어떻게 정의했었는지 확인했다.
 
@@ -57,6 +57,8 @@ type SendData struct {
 
 Id가 int로 선언된 걸 확인할 수 있었다. postid는 URL 파라미터를 통해 받아온 string 10이었고, post[0].Id는 서버에서 int로 받아온 10이었기 때문에 두 10은 타입이 달라 서로 비교될 수가 없어서 에러가 발생했던 것이다.
 
+---
+
 ## 해결
 
 ```js
@@ -65,7 +67,7 @@ console.log(String(jsonArray[0].Id));
 
 이후에 int 10을 string 타입으로 형변환 했더니
 
-![1](/assets/8-8.png)
+![1](http://www.choigonyok.com/api/assets/25-4.png)
 
 두 10 모두 흰색으로 잘 출력되는 걸 볼 수 있었다!
 
@@ -85,7 +87,7 @@ setRelatedPostData(jsonArray.filter((post) => String(post.Id) !== postid));
 
 사용자가 태그버튼을 클릭한 이후에서야 태그가 일치하는 게시글들이 나타났다.
 
-![1](/assets/8-10.png)
+![1](http://www.choigonyok.com/api/assets/25-5.png)
 
 그 이유는 위의 코드처럼 버튼 클릭 핸들러에만 POST요청을 보내는 **useEffect를** 구현해뒀기 때문이다.
 POST 요청은 버튼을 클릭하면 ClickHandler를 통해 useState 함수로 PostData를 JSON 형식으로 초기화하고,
@@ -116,17 +118,18 @@ POST 요청은 버튼을 클릭하면 ClickHandler를 통해 useState 함수로 
 
 ---
 
-# useState default로 동적인 기능을 구현하려면
+## useState default로 동적인 기능을 구현하려면
 
-돌아와서, useState함수인 setPostData() 가 클릭 핸들러에서만 동작했기 때문에 태그 버튼을 클릭하는 이벤트가 발생해야만 POST요청이 서버에 전송되었던 것이고, 내가 원하는 기능은 처음 접속했을 때 아무것도 누르지 않아도 전체 POST들을 볼 수 있게 하는 것이었다.
+돌아와서, useState함수인 setPostData()가 클릭 핸들러에서만 동작했기 때문에 태그 버튼을 클릭하는 이벤트가 발생해야만 POST요청이 서버에 전송되었던 것이다. 내가 원하는 기능은 처음 접속했을 때 아무것도 누르지 않아도 전체 POST들을 볼 수 있게 하는 것이었다.
 
 이 기능을 구현하기 위해서는 PostData에 default로 무엇이 들어있는지가 중요하다. useEffect의 []가 있든 없든, 뭐가 들어있는 우선 컴포넌트가 처음 실행될 때 한 번은 모두 동일하게 같이 실행된다. 그럼 첫 접속 때 useEffect가 실행되는 것이고, 전체 게시글을 사용자에게 보여주려면 PostData의 default 값으로 전체 게시글의 태그가 들어있어야한다. 그럼 서버는 DB에서 모든 모든 게시글의 데이터를 받아와 클라이언트에게 전달해줄 수 있을 것이다.
 
 이렇게 setPostData()를 통해서 전체 게시글의 tag를 전달하게되면 한 가지 문제가 생긴다.
 
-### 태그가 동적으로 변할 수 있다는 문제
+### 문제 : 태그가 동적으로 변할 수 있다
 
-게시글을 작성하면서 새로운 tag가 생길 수도 있고, 게시글을 삭제하게 되면 있던 tag가 사라지게 될 수도 있다.
+게시글을 작성하면서 새로운 tag가 생길 수도 있고, 게시글을 삭제하게 되면 있던 tag가 사라지게 될 수도 있다. 
+
 근데 default 값은 미리 정적으로 입력해주어야하는데, 그렇게 동적으로 바뀐 태그 변경사항이 있다면 몇몇 태그는 DEFAULT 값에서 누락되거나 혹은 DB에 없는 태그가 접근 요청될 수 있다.
 
 결국 첫 화면에 모든 POST를 전부 보여주지 못하고 몇 개의 POST는 누락될 수 있는 것이다. 
@@ -135,9 +138,7 @@ POST 요청은 버튼을 클릭하면 ClickHandler를 통해 useState 함수로 
 
 그래서 PostData의 default 값으로 키 => TAGNAME, 값 => "ALL" 이라는 JSON 형식의 데이터를 할당했다.
 
-![1](https://choigonyok.com/api/IMAGES/8-13.png)
-
-첫 접속시에 tagname으로 ALL이 POST 요청 본문에 담겨 서버로 전송될 것이고, 서버에서 tagname이 ALL이면 전체 게시글을 반환하도록 로직을 구현하기로 했다.
+첫 접속 시 tagname으로 ALL이 POST 요청 본문에 담겨 서버로 전송될 것이고, 서버에서 tagname이 ALL이면 전체 게시글을 반환하도록 로직을 구현하기로 했다.
 
 GO 서버에서 로직을 수행하기 위해 TagData struct 타입의 변수 data를 선언해주었다.
 
@@ -153,9 +154,7 @@ JSON형식의 tagname 키를 보면 Tags가 값을 받아오도록 미리 선언
 
 이제 tagname : "ALL" 의 처리 로직을 구현해보자.
 
-![1](https://choigonyok.com/api/IMAGES/8-15.png)
-
-ShouldBindJSON으로 JSON 형태의 데이터를 변수 data에 받아온다. 그리고 data에 저장된 키(tagname)의 값이 "ALL"이면 값을 "ALL"에서 빈 문자열 ""로 바꿔준다. GO는 STRING에서 ""을 0이 아니라 NIL(=NULL)로 취급한다. Tags를 빈 문자열로 반환한 이유는 다음과 같다.
+JSON 형태의 데이터를 변수 data에 받아온다. 그리고 data에 저장된 키(tagname)의 값이 "ALL"이면 값을 "ALL"에서 빈 문자열 ""로 바꿔준다. GO는 STRING에서 ""을 0이 아니라 NIL(=NULL)로 취급한다. Tags를 빈 문자열로 반환한 이유는 다음과 같다.
 
 원래 태그에 클릭 이벤트가 발생하면 해당 태그를 찾기위한 쿼리문을 작성해두었는데,
 
@@ -175,14 +174,15 @@ response, err := JSON.marshal(PostData)
 c.wirter.HEADER().set("CONTENT-TYPE", "application/json")
 C.wirter.write(response)
 ```
+
 응답이 JSON 형식으로 간다고 헤더에 content-type을 명시해서 클라이언트에게 알려주고, 본문에 전체 게시글의 데이터가 담긴 response를 담아 응답하면 사용자가 홈페이지 루트로 접속했을 때, 전체 게시글을 다 확인할 수 있게된다. 
 
 ALL 태그를 클릭해서 전체 게시글이 다 보이는 것과, 아무것도 클릭하지 않은 상태여서 전체 게시글이 다 보이는 것을 구분하기 위해서 
 
-![1](https://choigonyok.com/api/IMAGES/8-16.png)
+![1](http://www.choigonyok.com/api/assets/25-6.png)
 
 홈페이지로 라우팅됐을 때는 아무 태그가 안눌린 상태이기 때문에 태그버튼 위의 태그 표시를 CHOIGONYOK으로 지정해두었고,
 
-![1](https://choigonyok.com/api/IMAGES/8-KakaoTalk_Photo_2023-06-20-19-40-23.png)
+![1](http://www.choigonyok.com/api/assets/25-7.png)
 
-ALL 버튼을 누르면 제목이 ALL로 되도록 구현했다. 이를 통해서 사용자가 처음 접속하면 CHOIGONYOK을 보게되고, 다른 태그들 클릭하다가 전체 게시물이 보고싶어서 ALL 태그를 누르면 ALL을 볼 수 있도록 구현했다. |
+ALL 버튼을 누르면 제목이 ALL로 되도록 구현했다. 이를 통해서 사용자가 처음 접속하면 CHOIGONYOK을 보게되고, 다른 태그들 클릭하다가 전체 게시물이 보고싶어서 ALL 태그를 누르면 ALL을 볼 수 있도록 구현했다.
