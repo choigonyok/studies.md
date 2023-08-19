@@ -57,3 +57,7 @@ Projects/Blog#6.md
 GorillaWebSocket#1.md
 
 GorillaWebSocket#2.md
+
+ClusterProvisioning.md
+
+TypingEnglish.md

@@ -33,11 +33,11 @@ go get github.com/gorilla/websocket
 
 Conn type은 웹소켓의 커넥션을 의미한다. 서버는 request 핸들러에서 Upgrader 객체의 Upgrade 메서드를 호출하면 *Conn 객체를 얻을 수 있다.
 
-![img](http://www.choigonyok.com/api/assets/27-1.png)
+![img](http://www.choigonyok.com/api/assets/35-1.png)
 
 요청 응답 메시지를 보내거나 받기 위해서 conn의 WriteMessage/ReadMessage 메서드를 사용하면 메시지를 **[]bytes 타입**으로 주고받을 수 있다.
 
-![img](http://www.choigonyok.com/api/assets/27-2.png)
+![img](http://www.choigonyok.com/api/assets/35-2.png)
 
 ReadMessage 메서드는 websocket.BinaryMessage나 websocket.TextMessage 값(아래 data message 섹션에서 자세히 설명)을 가지는 int 타입의 MessageType, []bytes 타입의 p, err를 리턴한다.
 
@@ -47,7 +47,7 @@ ReadMessage 메서드는 websocket.BinaryMessage나 websocket.TextMessage 값(�
 
 메시지를 받으려면 conn.NextReader 메서드로 io.Reader 인터페이스를 얻어서 io.EOF가 리턴될 때까지 읽으면 메시지를 받을 수 있다.
 
-![img](http://www.choigonyok.com/api/assets/27-3.png)
+![img](http://www.choigonyok.com/api/assets/35-3.png)
 
 ---
 
@@ -196,7 +196,7 @@ write 버퍼 pool은 커넥션 수는 많은데 커넥션 안에서 write의 수
 
 각 메시지를 압축하는 확장자는 제한된 범위 안에서 시범지원된다.
 
-![img](http://www.choigonyok.com/api/assets/27-4.png)
+![img](http://www.choigonyok.com/api/assets/35-4.png)
 
 커넥션 상대방과 메시지가 압축되도록 둘 다 설정이 잘 되면, 모든 메시지는 압축된 형태로 받아지고 자동으로 압축해제된다.
 
@@ -206,7 +206,7 @@ write 버퍼 pool은 커넥션 수는 많은데 커넥션 안에서 write의 수
 
 conn에 write된 각 메시지의 압축은 
 
-![img](http://www.choigonyok.com/api/assets/27-5.png)
+![img](http://www.choigonyok.com/api/assets/35-5.png)
 
 이 메서드를 통해서 설정 취소할 수 있다.
 

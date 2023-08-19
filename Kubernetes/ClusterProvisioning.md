@@ -1,4 +1,5 @@
-## K8S CLUSTER CONFIGURATION W/ KUBEADM, CONTAINERD IN UBUNTU
+# Kubeadm으로 Ubuntu에 Kubernetes Cluster 스크래치 구성
+# study kubernetes
 
 ---
 

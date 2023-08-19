@@ -1,4 +1,5 @@
-# [BLOG #5] 댓글 / 답글 기능 구현하기
+# #5. 댓글 / 답글 기능 구현하기
+# project blog
 
 ---
 
@@ -27,7 +28,7 @@
 
 댓글 및 답글을 저장하기 위해 comment, reply 테이블을 추가했다. 닉네임/비밀번호 입력 창을 프론트엔드에서 구현해보자.
 
-![img](/assets/blog5-1.png)
+![img](http://www.choigonyok.com/api/assets/33-1.png)
 
 reply는 댓글창과 답글창이 한 번에 열리지 않고 동기적으로 열릴 수 있도록 하기 위해 만든 useState이다.
 
@@ -39,11 +40,11 @@ nowComment, nowID, nowPW는 모두 e.target.value를 받아서 상태를 업데�
 
 commentHandler, commentIDHandler, commentPWHandler 모두 위의 useState들을 업데이트하는 핸들러이며, 사용자가 입력을 다 하고 POST 버튼을 클릭하면 클릭이벤트가 발생해 commentSendHandler가 호출된다.
 
-![img](/assets/blog5-2.png)
+![img](http://www.choigonyok.com/api/assets/33-2.png)
 
 이 commentSendHandler는 서버에 comData 데이터와 함께 PUT API 요청을 보낸다. comData는 CommentData를 의미하면서 지은 변수명인데 의미가 좀 모호한 것 같다. refactoring시 수정이 필요해 보인다.
 
-![img](/assets/blog5-3.png)
+![img](http://www.choigonyok.com/api/assets/33-3.png)
 
 comData는 nowComment, nowID, nowPW useState가 변할 때마다 useEffect 훅을 통해 재정의된다.
 
@@ -74,7 +75,7 @@ postid = props.id
 
 댓글 작성 패스워드를 예시로 들면,
 
-![img](/assets/blog5-7.png)
+![img](http://www.choigonyok.com/api/assets/33-4.png)
 
 이런 식으로 일정 길이가 넘어가면 사용자에게 alert를 보내는 방식을 이용했다. 추가적으로 댓글 패스워드는 길이뿐만 아니라, 숫자로만 이루어졌는지 등의 조금 더 복잡한 유효성 검사가 필요했는데, 이 부분은 서버에서 로직을 구현했다.
 
@@ -89,7 +90,7 @@ postid = props.id
 
 * 패스워드 숫자인지 확인하기
 
-![img](/assets/blog5-12.png)
+![img](http://www.choigonyok.com/api/assets/33-5.png)
 
 go에서는 기본 내장 패키지에서 regexp라는 정규표현식 패키지를 제공한다. regexp는 regular expression, 말그대로 정규표현식이다.
 
@@ -113,13 +114,13 @@ go의 regexp 패키지에서 ^ 심볼은 시작지점을 가리킨다. 예를 �
 
 * 댓글 본문, 닉네임, 패스워드 중 입력이 빈 항목이 있으면 피드백
 
-![img](/assets/blog5-8.png)
+![img](http://www.choigonyok.com/api/assets/33-6.png)
 
 이건 ^ 뒤에 바로 $가 오니까, 시작하자마자 끝난다는 의미이다. 즉 아무 것도 없는 empty 상태를 표현하는 정규표현식이다.
 
 * 본문에는 quote가 있으면 디비에 저장할 때 오류가 발생하기 때문에 피드백
 
-![img](/assets/blog5-13.png)
+![img](http://www.choigonyok.com/api/assets/33-7.png)
 
 본문과 닉네임에 quote가 있는지 확인하고 있으면 StatusBadRequest(400)상태코드를 응답한다. 지금 보니까 PW는 위에서 정규표현식으로 유효성 검사를 했기 때문에 굳이 여기서 안적었어도 됐는데 적혀있다. 리팩토링할 때 수정해야겠다.
 
@@ -133,11 +134,11 @@ go의 regexp 패키지에서 ^ 심볼은 시작지점을 가리킨다. 예를 �
 
 이 컬럼은 댓글이 admin에 의해 작성되었는지 아닌지를 1 또는 0으로 저장하고, 이후에 프론트엔드에서 이 isadmin 값을 보고 색을 다르게 표현할 수 있게 했다.
 
-![img](/assets/blog5-14.png)
+![img](http://www.choigonyok.com/api/assets/33-8.png)
 
 admin 쿠키의 여부로 IsAdmin의 값을 초기화해서 댓글을 DB에 저장할 때 isadmin column에 함께 저장되도록 구현했다.
 
-![img](/assets/blog5-15.png)
+![img](http://www.choigonyok.com/api/assets/33-9.png)
 
 ---
 
@@ -157,15 +158,15 @@ admin 쿠키의 여부로 IsAdmin의 값을 초기화해서 댓글을 DB에 저�
 
 삭제를 위한 UX는 사용자가 댓글 본문 위에 커서를 올리면 우측에 x버튼이 표시되도록 했다.
 
-![img](/assets/blog5-21.png)
+![img](http://www.choigonyok.com/api/assets/33-10.png)
 
 X 버튼이 클릭되면 pw 입력 창이 표시된다. 
  
-![img](/assets/blog5-23.png)
+![img](http://www.choigonyok.com/api/assets/33-11.png)
 
 삭제 기능을 위해 db에 저장된 pw와 사용자가 입력한 pw를 비교해야하는데, 
 
-![img](/assets/blog5-24.png)
+![img](http://www.choigonyok.com/api/assets/33-12.png)
 
 CheckPasswordHandler를 통해서 POST요청을 보낸다. 
 
@@ -187,4 +188,4 @@ setPasswordComment 와 setIsFinished는 각각 pw입력창을 닫기 위한 것�
 
 원래 구현했었던 서버의 postDelete 핸들러에 로직을 추가해준다.
 
-![img](/assets/blog5-28.png)
+![img](http://www.choigonyok.com/api/assets/33-13.png)

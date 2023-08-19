@@ -1,4 +1,5 @@
-# [BLOG #3] 관련 / 전체 게시글 기능 구현
+# #3.관련 / 전체 게시글 기능 구현
+# project blog
 
 ---
 
@@ -24,7 +25,7 @@ console.log(jsonArray.filter((post) => post.Id.includes(postid)));
 
 jsonArray는 서버로부터 받아온 같은 카테고리를 가진 게시글 데이터 배열이고, postid는 DB에서 기본키로 설정된 게시글의 id이다. 이 코드를 실행하면 오류가 발생한다. 오류 내용을 살펴보면,
 
-![1](http://www.choigonyok.com/api/assets/25-1.png)
+![1](http://www.choigonyok.com/api/assets/31-1.png)
 
 post.Id.includes가 funcion이 아니라는 메시지가 콘솔에 출력된다. includes 대신 jsonArray의 element들 중에 post[0].Id가 postid와 같지 않은 것들만 남기는 방식으로 다시 구현했다.
 
@@ -34,13 +35,13 @@ console.log(jsonArray.filter((post) => post[0].Id !== postid));
 
 이렇게되면 postid(현재 보고있는 글)과 같은 id의 글만 related posts에서 필터링될 수 있을 것이다.
 
-![1](http://www.choigonyok.com/api/assets/25-2.png)
+![1](http://www.choigonyok.com/api/assets/31-2.png)
 
 그랬더니 콘솔엔 postid와 post[0].Id가 둘 다 10으로 잘 출력되는데, 오류가 발생하는 걸 볼 수 있었다. 10 = 10이 틀렸다는 우리의 리액트
 
 > 가만보니 콘솔창의 두 10의 색상이 다르다.
 
-![1](http://www.choigonyok.com/api/assets/25-3.png)
+![1](http://www.choigonyok.com/api/assets/31-3.png)
 
 이 보라색 10이 처음 서버에서 넘어올 때 클라이언트가 콘솔에 출력하는 게시글 데이터를 확인해봤다. 살펴보니 여기도 Id의 10이 보라색으로 출력된다. 그래서 백엔드 서버에서 데이터를 클라이언트에 전송하는 구조체를 어떻게 정의했었는지 확인했다.
 
@@ -67,7 +68,7 @@ console.log(String(jsonArray[0].Id));
 
 이후에 int 10을 string 타입으로 형변환 했더니
 
-![1](http://www.choigonyok.com/api/assets/25-4.png)
+![1](http://www.choigonyok.com/api/assets/31-4.png)
 
 두 10 모두 흰색으로 잘 출력되는 걸 볼 수 있었다!
 
@@ -87,7 +88,7 @@ setRelatedPostData(jsonArray.filter((post) => String(post.Id) !== postid));
 
 사용자가 태그버튼을 클릭한 이후에서야 태그가 일치하는 게시글들이 나타났다.
 
-![1](http://www.choigonyok.com/api/assets/25-5.png)
+![1](http://www.choigonyok.com/api/assets/31-5.png)
 
 그 이유는 위의 코드처럼 버튼 클릭 핸들러에만 POST요청을 보내는 **useEffect를** 구현해뒀기 때문이다.
 POST 요청은 버튼을 클릭하면 ClickHandler를 통해 useState 함수로 PostData를 JSON 형식으로 초기화하고,
@@ -179,10 +180,10 @@ C.wirter.write(response)
 
 ALL 태그를 클릭해서 전체 게시글이 다 보이는 것과, 아무것도 클릭하지 않은 상태여서 전체 게시글이 다 보이는 것을 구분하기 위해서 
 
-![1](http://www.choigonyok.com/api/assets/25-6.png)
+![1](http://www.choigonyok.com/api/assets/31-6.png)
 
 홈페이지로 라우팅됐을 때는 아무 태그가 안눌린 상태이기 때문에 태그버튼 위의 태그 표시를 CHOIGONYOK으로 지정해두었고,
 
-![1](http://www.choigonyok.com/api/assets/25-7.png)
+![1](http://www.choigonyok.com/api/assets/31-7.png)
 
 ALL 버튼을 누르면 제목이 ALL로 되도록 구현했다. 이를 통해서 사용자가 처음 접속하면 CHOIGONYOK을 보게되고, 다른 태그들 클릭하다가 전체 게시물이 보고싶어서 ALL 태그를 누르면 ALL을 볼 수 있도록 구현했다.

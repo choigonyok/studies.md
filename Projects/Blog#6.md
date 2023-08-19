@@ -1,4 +1,5 @@
-#  [BLOG #6] AWS에 배포하기
+#  #6. AWS에 배포하기
+# project blog
 
 ---
 
@@ -14,7 +15,7 @@
 
 AWS에 접속하면 우측 상단에 "콘솔에 로그인" 버튼이 있다. 클릭하면 로그인 페이지가 나오는데 아이디가 있으면 로그인하고, 없다면 회원가입 후 로그인한다. 루트 사용자로 로그인하면 되는데,
 
-![img](/assets/17-0706-2.png)
+![img](http://www.choigonyok.com/api/assets/34-1.png)
 
 IAM 사용자는 루트 계정에서 파생된 서브 계정이라고 생각하면 된다.
 
@@ -22,12 +23,12 @@ IAM 사용자는 루트 계정에서 파생된 서브 계정이라고 생각하�
 
 접속하면 왼쪽 위에 검색 창이 있는데, EC2 서비스를 검색해 들어간다.
 
-![img](/assets/17-0706-3.png)
+![img](http://www.choigonyok.com/api/assets/34-2.png)
 
 "인스턴스 시작" 버튼을 누르고, "이름 및 태그" 섹션에는 인스턴스의 이름을 설정해준다.
 
 ### AMI 설정
-![img](/assets/17-0706-5.png)
+![img](http://www.choigonyok.com/api/assets/34-3.png)
 
 밑의 "애플리케이션 및 이미지" 섹션에서는 AMI를 설정할 수 있다. AMI는 AWS에서 제공하는 다양한 버전과 종류의 OS 이미지이다.
 
@@ -42,7 +43,7 @@ AWS에서는 처음 가입하면 가입일 기준 1년간 프리티어 계정으
 
 프리티어는 EC2 서비스에서 t2.micro 인스턴스를 이용할 수 있는데, 
 
-![img](/assets/17-0706-6.png)
+![img](http://www.choigonyok.com/api/assets/34-4.png)
 
 cpu 코어 수, 메모리 용량 및 시간 당 요금을 확인할 수 있다.
 
@@ -54,7 +55,7 @@ cpu 코어 수, 메모리 용량 및 시간 당 요금을 확인할 수 있다.
 
 그 다음으로는 키페어 섹션이다. 인스턴스를 생성하고, 해당 인스턴스에 접근할 때 이 키 페어를 통해서 접근할 수 있는 권한을 인증받게 된다.
 
-![img](/assets/17-0706-8.png)
+![img](http://www.choigonyok.com/api/assets/34-5.png)
 
 키 페어 생성을 누르면 이름을 입력할 수 있다. 이름은 원하는 키페어 이름으로 설정하고, 유형은 RSA로 설정한다.
 
@@ -74,7 +75,7 @@ cpu 코어 수, 메모리 용량 및 시간 당 요금을 확인할 수 있다.
 
 ### 생성 확인
 
-![img](/assets/17-0706-11.png)
+![img](http://www.choigonyok.com/api/assets/34-6.png)
 
 "인스턴스" 탭에 가보면 이처럼 새로운 인스턴스가 생성된 걸 확인할 수 있다. 인스턴스 상태는 바로 켜지는 게 아니라 "초기화" 상태를 거쳐 "실행 중" 상태로 변하는데 시간이 일부 소요된다. 마치 실제 데스크탑을 켜면 부팅 시간이 소요되듯이 말이다.
 
@@ -84,11 +85,11 @@ cpu 코어 수, 메모리 용량 및 시간 당 요금을 확인할 수 있다.
 
 아까 보안그룹에서 그냥 넘어갔는데, 이제 보안그룹을 생성하고 재연결해주어야 한다. 물론 인스턴스 생성시에 보안그룹을 바로 생성해서 적용할 수도 있다.
 
-![img](/assets/17-0706-12.png)
+![img](http://www.choigonyok.com/api/assets/34-7.png)
 
 왼쪽 탭에보면 "네트워크 및 보안" 탭의 하위 항목으로 "보안 그룹"이 있다. "보안 그룹 생성"을 누르면 보안그룹을 생성할 수 있는데, 
 
-![img](/assets/17-0706-13.png)
+![img](http://www.choigonyok.com/api/assets/34-8.png)
 
 보안그룹의 이름과 설명을 적어주고, VPC를 설정해준다.
 
@@ -102,7 +103,7 @@ VPC는 가상의 네트워크라고 보면 되는데, 보안그룹 설정은 **�
 
 우리는 SSH를 통해 이 인스턴스에 접근해야하고, 또 이후엔 HTTP를 통해서, 또 SSL인증을 받은 이후엔 HTTPS를 통해서 접근해야하기 때문에, 인바운드 규칙을 생성하고 편집해준다.
 
-![img](/assets/17-0706-15.png)
+![img](http://www.choigonyok.com/api/assets/34-9.png)
 
 "규칙 추가"를 눌러서 SSH를 지정하고, 소스는 이미지와 다르게 내 IP로 설정해준다. 또 HTTP도 지정하고 소스는 Anywhere-IPv4로 설정한다.
 
@@ -132,7 +133,7 @@ EIP는 탄력적 IP(Elastic IP)을 줄임말이다.
 
 처음 인스턴스를 생성하면 
 
-![img](/assets/17-0706-18.png)
+![img](http://www.choigonyok.com/api/assets/34-10.png)
 
 이런 퍼블릭 주소가 할당된다.
 
@@ -142,13 +143,13 @@ EIP는 탄력적 IP(Elastic IP)을 줄임말이다.
 
 이런 일을 막기 위해서 고정된 ip주소가 필요하고, 이 역할을 해주는 것이 바로 **탄력적 ip주소**이다.
 
-![img](/assets/17-0706-19.png)
+![img](http://www.choigonyok.com/api/assets/34-11.png)
 
 탄력적 ip주소는 보안 그룹이 있던 탭과 같은 위치에 있다. "탄력적 ip 주소 할당"을 누르고 모든 세팅을 DEFAULT로 둔 뒤 ip를 생성한다.
 
 그리고 생성된 탄력적 ip 주소를 선택한 뒤 작업 -> 탄력적 ip 주소 연결을 눌러 인스턴스와 연결해준다.
 
-![img](/assets/17-0706-20.png)
+![img](http://www.choigonyok.com/api/assets/34-12.png)
 
 연결해준 뒤 인스턴스 탭에 가보면 세부정보에 아까는 없던 탄력적 ip 주소가 생성되어 있는 것을 확인할 수 있다. SSH를 통해 인스턴스에 접근할 때도 이 탄력적 ip 주소를 통해 접근할 수 있다.
 
@@ -184,7 +185,7 @@ EIP는 탄력적 IP(Elastic IP)을 줄임말이다.
 
 이렇게 명령어를 입력하면 터미널과 SSH를 통해 인스턴스로 접속할 수 있게된다.
 
-![img](/assets/17-0706-22.png)
+![img](http://www.choigonyok.com/api/assets/34-13.png)
 
 ---
 
@@ -200,11 +201,11 @@ EIP는 탄력적 IP(Elastic IP)을 줄임말이다.
 
 레포지토리 주소는 깃허브에서 해당 레포지토리에 들어가면 
 
-![img](/assets/17-0706-23.png)
+![img](http://www.choigonyok.com/api/assets/34-14.png)
 
 우측 상단에 CODE라고 초록 창이 보일 것이다. 이를 클릭하면 
 
-![img](/assets/17-0706-24.png)
+![img](http://www.choigonyok.com/api/assets/34-15.png)
 
 이런 창이 나타나는데 HTTPS 주소를 복사해서 위 명령어의 <레포지토리 주소> 부분에 입력해주면 된다.
 

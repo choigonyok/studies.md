@@ -1,4 +1,5 @@
-# [Blog #2] 리액트 이미지 IMPORT
+# #2. 리액트 이미지 IMPORT
+# project blog
 
 ---
 
