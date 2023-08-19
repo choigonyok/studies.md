@@ -1,4 +1,5 @@
 # CONNECT AWS NLB AND ROUTE53 DOMAIN NAME
+# study aws
 
 ---
 
@@ -83,4 +84,4 @@ NLB는 SIP, EIP를 지원하고, DNS 이름도 생성되기 때문에 둘 줄 �
 
 웹 어플리케이션의 배포는 참 수많은 라우팅의 연속이다..
 
-다음 글은 HAPROXY Helm Chart 커스터마이징를 통해 SSL/TLS인증서를 관리하고 HAPROXY가 리버스프록시로서 SSL/TLS종료를 수행하게 하는 방법에 대해 알아보겠다.
+다음 글은 HAProxy가 리버스프록시로서 SSL/TLS종료를 수행하게 하는 방법에 대해 알아보겠다.
