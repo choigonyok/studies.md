@@ -24,7 +24,8 @@ studies.md
 <br>┃ ┣ Blog#4.md
 <br>┃ ┣ Blog#5.md
 <br>┃ ┣ Blog#6.md
-<br>┃ ┣ BlogRefactor.md
+<br>┃ ┣ BlogRefactor#1.md
+<br>┃ ┣ BlogRefactor#2.md
 <br>┃ ┗ Production#1.md
 <br>┣ Terraform
 <br>┃ ┣ ConfigNLBofAWS.md
