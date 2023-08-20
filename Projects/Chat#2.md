@@ -1,4 +1,4 @@
-# #2. 풀스택 개발환경 도커파일 설정
+# #2. 개발환경 Dockerfile 설정
 # project couple-chat docker
 
 ---
