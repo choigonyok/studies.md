@@ -1,247 +1,219 @@
-# #3. 풀스택 도커컴포즈 설정
-# project couple-chat docker
+# #4. 리액트 캘린더 구현하기
+# project couple-chat
 
 ---
 
 ## 개요
 
-이전 글에서 개발환경을 위한 도커파일 작성을 살펴봤다. 이제 도커 컴포즈를 활용해서 각 서비스의 도커파일을 읽고, 이미지를 빌드하고, 빌드한 이미지를 기반으로 컨테이너를 실행하는 과정을 살펴보겠다.
+커플 간의 일정을 공유/생성/삭제하기 위해 캘린더 기능이 필요했다. 리액트에 여러 캘린더 라이브러리들이 있지만, 직접 스크래치로 구현했다.
+
+캘린더에 일정을 추가하고 삭제하는 것은 크게 어렵지 않았다. D-Day를 설정하고 며칠 남았는지를 표시하는 것도 어렵지 않았다. 구현에 있어서 어려웠던 점은 아래와 같다.
+
+1. 4년마다 윤년이 돈다는 것
+2. 매달 주의 수가 일정하지 않고 4주 ~ 6주로 달마다 다르다는 것
+3. 매달 말일이 28, 29, 30, 31로 다양하다는 것
+4. 매달 시작일의 요일이 다 다르다는 것
 
 ---
 
-## 도커 컴포즈
+## 변수 설정
 
-docker compose는 로컬환경에서 컨테이너 기반의 어플리케이션을 쉽게 빌드할 수 있게 해준다. 여러 장점이 있지만 내가 느낀 가장 큰 장점 두 가지를 꼽아보겠다.
+Calender 컴포넌트 안에 필요한 변수들을 정의했다.
 
-1. 여러 컨테이너를 하나의 커맨드로 동시에 실행이 가능하다.
+    const date1 = new Date(); // 06/16, 이달 1일 계산
+    const date2 = new Date(); // 06/16, 이달 말일 계산
+    const thisYear = date1.getFullYear();
+    const thisDate = date1.getDate();
+    const thisMonth = date1.getMonth(); // thisMonth = 7
+    const [month, setMonth] = useState(thisMonth); // 기본값 month = 7
+    const [year, setYear] = useState(thisYear); // 기본값 month = 7
+    date1.setDate(1); // date1 = 06/01
+    date1.setMonth(month); // date1 = 07/01
+    date2.setDate(1); // date1 = 06/01
+    date2.setMonth(month + 1); // date1 = 07/01
+    const [dateArray, setDateArray] = useState([]);
+    const [weeksArray, setWeeksArray] = useState([]);
 
-하나의 컨테이너만 실행한다면 
+하나하나 살펴보겠다.
 
-    docker run -
 
-커맨드를 이용해 실행할 수 있다.
+    const date1 = new Date(); // 06/16, 이달 1일 계산
+    const date2 = new Date(); // 06/16, 이달 1일 계산
 
-개발환경에서 여러개의 컨테이너를 실행해야한다면? 100개가 되는 컨테이너가 있다면 docker run 커맨드를 manually 100번 실행할 순 없다. 도커 컴포즈는 yaml파일에 정의된 모든 컨테이너를 한 번에 실행할 수 있게 간편성을 더해준다.
 
-2. 컨테이너 간 네트워크 설정이 간편하다.
+리액트에서 new Date()는 현재 날짜를 불러온다. 이 값을 date1과 date2에 저장했다.
 
-컨테이너를 일반적으로 하나씩 실행한다면 각 컨테이너는 개별적인 네트워크를 가지게 된다. 그럼 프론트와 백엔드가 통신하려면 각자의 ip주소와 포트를 통해 통신해야한다. 
 
-도커 컴포즈를 사용하면 모든 컨테이너를 하나의 컨테이너로 묶을 수 있고, localhost로 통신할 수 있어 개발과정이 간편해진다.
+    const thisYear = date1.getFullYear();
+    const thisMonth = date1.getMonth(); // thisMonth = 7
+    const thisDate = date1.getDate();
+
+현재년도, 현재월, 현재일을 저장하는 thisYear, thisMonth, thisDate를 정의했다.
+
+이 변수들은 캘린더에 현재날짜를 표시하는 용도로 사용될 것이다.
+
+주의할 점은, getMonth()는 0부터 11사이의 값을 가진다. 1월을 0으로 보는 셈이고, 개발 당시 8월이었기 때문에, 현재 thisMonth에는 7이 저장되어있는 상태다.
+
+    const [month, setMonth] = useState(thisMonth); // 기본값 month = 7
+    const [year, setYear] = useState(thisYear); // 기본값 month = 7
+
+useState인 month와 year는 유동적으로 값이 변하면서 날짜 계산을 위해 사용될 것이다.
+
+날짜계산이라고 함은 해당 월의 말일 계산, 요일 계산 등을 말한다.
+
+    date1.setDate(1); // date1 = 06/01
+    date1.setMonth(month); // date1 = 07/0
+
+오늘이 며칠인지는 thisDate에 이전에 저장해뒀기 때문에, date1의 date를 1로 변경해준다.
+
+이렇게되면 date1은 **"이번달의 첫 날짜"**를 가리키고 있을 것이다.
+
+    date2.setDate(1); // date1 = 06/01
+    date2.setMonth(month + 1); // date1 = 07/01
+
+date2에도 같은 작업을 해준다. 대신 date2에는 month + 1을 해서 다음달 1일을 가리키도록 설정했다.
+
+date2에서 하루를 빼면 전
+
+    const [dateArray, setDateArray] = useState([]);
+    const [weeksArray, setWeeksArray] = useState([]);
+
+weeksArray는 
 
 ---
 
-## Docker-Compose.yml
+## 마운트/렌더링 설정
 
-이제 도커컴포즈 파일을 작성해보자.
+변수 이후에 리렌더링 될 때마다 값을 계산한다.
 
-```yaml
-version: '3'
-services:
-  frontend:
-    build:
-      dockerfile: Dockerfile.dev
-      context: ./frontend
-    volumes:
-      - /app/node_modules
-      - ./frontend/:/app
-    stdin_open: true
-    environment:
-      - WDS_SOCKET_PORT=80
-    ports:
-      - "8080:8080"
-      
-  mysql:
-    build: ./mysql
-    ports:
-      - "3306:3306"
-    volumes:
-      - ./mysql/mysql_data:/var/lib/mysql
-      - ./mysql/sqls:/docker-entrypoint-initdb.d/
-    environment:
-      MYSQL_ROOT_PASSWORD: 1234
-      MYSQL_DATABASE: example
-      TZ: Asia/Seoul
+```js
+let firstWeeksLastDate = 7 - date1.getDay();
+let lastDateOfThisMonth = date2.getDate(date2.setDate(date2.getDate() - 1));
 
-  backend:
-    build:
-      dockerfile: Dockerfile.dev
-      context: ./backend
-    volumes:
-      - ./backend/:/app
-    ports:
-      - "8080:8080"
+let weeksOfThisMonth;
+for (let i = 0; firstWeeksLastDate + 7 * i < lastDateOfThisMonth; i++) {
+weeksOfThisMonth = i;
+}
+weeksOfThisMonth += 2;
 ```
 
-### services
+    let firstWeeksLastDate = 7 - date1.getDay();
 
-    services: 
+getDay는 요일을 0부터 6까지의 수로 반환한다. 일요일을 한 주 시작의 기준으로 보기때문에, date1가 일요일이면 0, 토요일이면 6을 반환한다.
 
-하위 항목들을 서비스 이름을 지정한다.
+그럼 7에서 오늘 요일값을 빼주면, 첫 주의 마지막 날짜가 며칠인지를 알 수 있다.
 
-### build
+이 값을 firstWeeksLastDate에 저장한다.
 
-    build:
-        dockerfile: Dockerfile.dev
-        context: ./frontend
+일요일을 주의 시작이라고 정하고, 7에서 이번 달 첫 날짜를 빼면 첫주의 마지막 날짜(토요일)가 나온다.
 
-dockerfile 속성은 도커파일의 이름을 지정한다. 만약 dockerfile 속성을 사용하지 않는다면 도커는 default로 Dockerfile이라는 이름을 가진 파일을 찾는다.
+    let lastDateOfThisMonth = date2.getDate(date2.setDate(date2.getDate() - 1));
 
-이로인해서 운영환경과 개발환경의 도커파일을 분리할 때, 개발환경 도커파일은 Dockerfile.dev로 이름 짓는 것이 일반적이다.
+date2는 다음 달 1일을 가리키고 있었다. date2.getDate() - 1을 하면 date2는 이번 달 말일을 가리키게 된다.
 
-그리고 build:dockerfile:Dockerfile.dev로 선언해줌으로써 default인 Dockerfile이 아니라 Dockerfile.dev를 실행해야함을 명시해주는 것이다.
+setDate로 이 값을 date2의 값으로 저장해주고, 다시 한 번 getDate를 하면 이번 달 말일에 대한 데이터를 date2가 가지고있게 된다.
 
-context 속성은 경로를 지정한다.
+이 값을 lastDateOfThisMonth에 저장해준다. 
 
-위의 리액트 Dockerfile.dev를 예시로 들면, COPY ./package.json ./ 이 코드가 실행될 때 ./package.json 부분에서 .이 context가 되는 것이다.
+lastDateOfThisMonth는 오늘이 몇 년도, 몇 월, 며칠이든 해당 달의 말일을 가리키게 된다.
 
-WORKDIR는 컨테이너 내부의 경로, context: 는 로컬의 경로라고 생각하면 된다.
+    let weeksOfThisMonth;
+    for (let i = 1; firstWeeksLastDate + 7 * i < lastDateOfThisMonth; i++) {
+    weeksOfThisMonth = i;
+    }
+    weeksOfThisMonth += 1;
 
-또 다른 예를 들어보겠다.
+weeksOfThisMonth는 이번 달이 몇 주까지 있는지에 대한 데이터가 저장될 것이다.
 
-    도커파일 경로 : /project/backend/Dockerfile
-    도커컴포즈 경로 : /docker-compose.yml
-    도커파일 내용 : COPY . .
+첫 주의 마지막 날짜에 말일이 넘지 않을 때까지 7일씩 더한 뒤, 더한 횟수에 1을 더하면 그 달이 몇 주차까지 있는지를 알 수 있게된다.
 
-이런 상황일 때, 도커컴포즈의 내용이 아래와 같다면
+1을 더하는 이유는 예를 들어보면 쉽게 이해할 수 있다.
 
-```
-1번
-build:
-    dockerfile: backend/Dockerfile
-    context: ./project
-```
+말일이 30일이고, 7씩 더해서 25일까지 왔다고 가정해보자.
 
-```
-2번
-build:
-    dockerfile: Dockerfile
-    context: ./project/backend
-```
+또 7을 더하면 32로 30보다 커지기 때문에 더 더하지 않고 반복문은 종료된다. 그렇다고 다음 주가 없는 것은 아니다. 다음주의 토요일이 없는 것 뿐이지 다음주는 26, 27, 28, 29, 30일이 존재한다.
 
-1번과 2번 중 어느 것이 정상적으로 실행될까?
+그래서 마지막 주를 세기위해 1을 더해주는 것이다.
 
-정답은 **둘 다** 이다.
+여기까지 해서,
 
-그렇다고 결과가 같은 것은 아니다.
+1. 첫 주 토요일의 날짜 (firstWeeksLastDate)
+2. 이 달의 말일 (lastDateOfThisMonth)
+3. 이 달의 week 수 (weeksOfThisMonth)
 
-COPY . . 명령을 실행하면 1번은 context가 ./project이므로 project 디렉토리 안의 전체를 컨테이너로 복사할 것이고, 2번은 context가 ./project/backend이므로 backend 디렉토리 안의 전체를 컨테이너로 복사할 것이다.
-
-dockerfile, context 속성은 이런 관계가 있다.
-
-### volumes
-
-    volumes:
-      - /app/node_modules
-      - ./frontend/:/app
-
-volumes는 볼륨을 생성하고 컨테이너로 마운트시킨다. 컨테이너 안에서 생성된 데이터는 본래 컨테이너가 사라지면 같이 사라진다. 같은 이미지로 컨테이너가 재시작되어도 이전 컨테이너가 가지고있던 정보는 남아있지 않는다.
-
-볼륨을 이용하면 컨테이너와 host간에 통신을 해서, 같은 데이터를 공유할 수 있게 한다.
-
-이러면 컨테이너가 사라져도 볼륨에 공유된 데이터가 남아있게 되고, 새로운 컨테이너가 생성되면 또 볼륨을 연결해서 이전 컨테이너가 가지고있던 데이터를 그대로 이어받을 수 있게 된다.
-
-볼륨은 데이터 보존 뿐만 아니라 컨테이너에 데이터 전달 등 다양한 목적으로 사용될 수 있다.
-
-예시 코드에는 : 심볼이 있는 부분과 없는 부분 두 가지가 있다.
-
-1. : 심볼이 없으면 해당 경로는 볼륨에서 제외시키겠다는 의미이다. .gitignore 그런 느낌이다.
-2. : 심볼이 있으면 : 심볼 왼쪽의 로컬 경로를 : 심볼 오른쪽의 컨테이너 경로와 마운트시키겠다는 것이다.
-
-대신 둘 다 유효한(실존하는) 경로여야한다.
-
-이렇게되면 로컬에서 ./frontend/text.txt를 생성하면 컨테이너에 /app/text.txt가 생성되고, 컨테이너에서 /app/text.txt를 삭제하면 로컬에서도 ./frontend/text.txt가 삭제되는 식으로 연동되게 된다.
-
-이 볼륨을 통해서 1편에서 소개한 실시간 코드 수정 적용이 가능한데, 위 예시에서 ./frontend 경로 안에는 리액트 소스파일들이 있고, 이 경로는 볼륨으로서 /app 경로에 마운트되어있기 때문에, 코드 수정시 컨테이너 내부 소스파일도 동일하게 변경되게 된다.
-
-흐름을 요약하자면 다음과 같다.
-
-    볼륨 설정 -> 볼륨 안에서 코드 수정 -> 볼륨이 마운트된 컨테이너 내부에도 파일 수정이 적용 -> 변경사항 감지 후 핫리로딩으로 수정사항 적용
-
-대신 컨테이너의 /app 경로에 ./frontend/node_modules는 마운트되지 않는다. 왜?
-
-/app/node_modules 라인을 설정해둬서 node_modules는 동기화가 되지 않고 제외되기 때문이다.
-
-그럼 왜 제외시키는 걸까?
-
-node_modules는 의존성 파일이다. package.json처럼 의존성 설치 리스트가 아니라, package.json을 통해 npm install으로 설치된 실제 의존성들이 설치되어있는 파일이다.
-
-이 파일은 용량도 클 뿐더러, 운영환경에서는 도커파일에 정의한 RUN npm install 명령어로 해당 운영환경에서 필요한 의존성들을 알아서 설치할 것이기 때문에 볼륨에서 제외시켜준다.
-
-### environment
-
-```
-environment:
-    MYSQL_ROOT_PASSWORD: 1234
-    MYSQL_DATABASE: example
-    TZ: Asia/Seoul
-```
-
-이 속성을 통해 컨테이너 내부에 환경변수를 주입할 수 있다.
-
-mysql의 경우 기본적으로 MYSQL_ROOT_PASSWORD와 MYSQL_DATABASE 환경변수를 설정해줘야 실행이 가능하다. 어느 DB를 사용할 것인지, 또 root 사용자가 접근할 때 password는 뭘로할 건지를 설정해준다. 
-
-TZ는 TimeZone의 줄임말로 mysql의 시간 설정을 하는 부분이다.
-
-### ports
-
-    ports:
-      - "8080:8080"
-
-ports는 라우팅 포트와 리스닝 포트를 설정하는 부분이다. : 심볼 왼쪽은 컨테이너가 전달할 서비스의 포트, 심볼 오른쪽은 외부에서 컨테이너가 리스닝할 포트를 의미한다.
-
-백엔드 같은 경우 RUN(":8080") 이런 식으로 리스너를 구현할텐데, 만약 다 같은데 RUN(":8000")로 백엔드 코드를 수정한다면 
-
-    ports:
-      - "8000:8080"
-
-포트 설정도 이렇게 변경해주어야 할 것이다. 만약 프런트엔드에서 API요청을 4000번 포트로 변경하고싶다면, 백엔드의 ports는 
-
-    ports:
-      - "8000:4000"
-
-이렇게 수정되어야 할 것이다.
+컴포넌트 마운트나 렌더링이 이루어질 때마다 최신화된 세 정보를 알 수 있게 되었다.
 
 ---
 
-## 추가 설명
+## Prev, Next Month
 
-추가적으로 frontend 서비스의
+로직은 우선 주차 수 * 7만큼 렌더링을 할 건데, 날짜 표시는 첫날부터 마지막날까지만 표시하고 첫 날보다 작거나 말일보다 크면, 이전 달, 다음 달이기 때문에 캘린서에 날짜를 출력하지 않도록 하는 로직이다.
 
-```
-environment:
-    - WDS_SOCKET_PORT=80
-```
+    useEffect(() => {
+      const array = [];
+      let temp_date = 1; // 날짜 표시
+      for (let i = 0; i < 7 * weeksOfThisMonth; i++) { // 주 수 전체를 표시, 이 달이 아닌건 0으로 저장
+        if (
+          date1.getDay() <= i &&
+          i <= lastDateOfThisMonth + date1.getDay() - 1
+        ) {
+          array[i] = temp_date;
+          temp_date += 1;
+        } else {
+          array[i] = 0;
+        }
+      }
+      setDateArray(array);
 
-이 부분은 웹소켓 연결을 위해 웹소켓 port를 설정해주는 부분이다.
+      const temp_weeks = [];
+      for (let j = 0; j < weeksOfThisMonth; j++) {
+        temp_weeks[j] = j;
+      }
+      setWeeksArray(temp_weeks);
+    }, [month]);
 
-```
-volumes:
-      - ./mysql/mysql_data:/var/lib/mysql
-      - ./mysql/sqls:/docker-entrypoint-initdb.d/
-```
-
-컨테이너 내부 /var/lib/mysql에는 mysql의 현재 DB 데이터가 저장된다.
-
-이 경로와 로컬의 ./mysql/mysql_data를 볼륨으로 동기화시키면, 컨테이너가 재시작해도 볼륨이 있기 때문에 기존 컨테이너가 가지고있던 레코드들을 그대로 유지할 수 있다. 백업 용도라고 볼 수 있겠다.
-
-컨테이너 내부 /docker-entrypoint-initdb.d/에는 mysql의 초기 테이블, 컬럼 설정 정보가 들어있다. 이 역시 컨테이너가 재시작해도 로컬 .mysql/sqls에 백업되어있는 설정정보를 보고 이전 컨테이너의 테이블/컬럼을 유지할 수 있다.
-
----
-
-## 실행
-
-docker-compose로 이미지를 빌드하고 컨테이너를 실행시키려면
-
-    docker-compose up
-
-커맨드를 사용하면 된다. 만약 이미지가 이미 docker-compose up으로 생성되어있는데 이미지를 수정해서 재빌드하고싶다면
-
-    docker-compose up --build
-
-커맨드를 통해 이미지를 재빌드하고 도커 컴포즈를 실행할 수 있다.
+이 useEffect는 next, prev 버튼을 통해 month가 변경될 때마다 month에 맞게 새롭게 계산되면서 해당 월에 맞는 캘린더를 보여줄 수 있게 된다.
 
 ---
 
-## 정리
+## TroubleShooting
 
+날짜는 알맞게 구현하는데, 해당 월이 출력될 때, 월이 음수로 표시되는 문제가 생겼다.
+
+처음 월을 getMonth()로 받아올 땐 양수인데, 계속 이전달로 넘어가다보면 날짜는 잘 표시되는데 월이 -1월, -2월로 넘어가길래 1월 전은 12월이 되도록, 또 12월 다음은 13월이 아니라 1월이 되도록 month를 설정해줄 필요가 있었다.
+
+그렇다고 모듈러를 사용하자기엔 매 년도 같은 캘린더가 생성될 수 있었다.
+
+    month = (month % 12) + 1
+
+이런 식으로하면 올해 1월과 내년 1월을 같은 일정이 될 것이다. 그래서 실질적으로 month는 음수와 양수 자유롭게 크고 작아지도록 두고, 사용자에게 표시할 때 모듈러를 사용해서 표시하는 방법을 선택했다.
+
+    const prevMonthHandler = () => {
+      if (month % 12 === 0) {
+        setYear(year - 1);
+      }
+      setAnniversaries([]);
+      setMonth(month - 1);
+      setDateInfo(0);
+      setInputAnniversary("");
+    };
+
+    const nextMonthHandler = () => {
+      if ((month + 1) % 12 === 0) {
+        setYear(year + 1);
+      }
+      setAnniversaries([]);
+      setMonth(month + 1);
+      setDateInfo(0);
+      setInputAnniversary("");
+    };
+
+중요한 부분은 각 핸들러의 if문이다. 이전 버튼을 누르면 전월로 month - 1이 되는데, 이 때 month % 12 === 0이 된다면 이번달이 1월이었고 전월을 눌러서 이제 12월로 가야한다는 이야기다, 그래서 년도를 1 빼주는 식으로 구현했다.
+
+next버튼을 누르면 위와 동일하지만 반대로 작동하도록 했다.
+
+---
+
+## 결과
+
+<iframe width="900" height="600" src="https://www.youtube.com/embed/YrsYGLeEhGI" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
