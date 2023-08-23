@@ -121,3 +121,105 @@ helm package DIR
 helm lint DIR
 : 지금까지 작성된 차트 내용에 문법적 등 기타 오류가 없는지 검증한다. 없으면 0리턴, 있으면 0말고 다른거 리턴
 
+
+---
+
+헬름 템플릿 수정
+
+헬름에서 중괄호 두개 {{}}로 묶인 걸 액션이라고 함, -은 앞뒤 불필요한 white space를 삭제해서 yaml파일 에러가 나지 않게 해줌
+ex) {{-   "HELLO WORLD"}}
+
+.Values.~ 은 values.yml 파일을 참조하는 것
+.Chart.~ 는 chart.yml 파일을 참조하는 것
+.Release.~ 는 릴리즈 될 오브젝트 관련한 내용을 출력. install 이나 upgrade시
+.Template.~ 는 현재 위치한 템플릿 관련 내용 출력
+
+
+.Release.Name : 릴리즈 이름 
+.Release.Namespace : 어떤 네임스페이스에 생성되는지
+.Release.IsInstall : 첫 revision인지
+.Release.IsUpgrade : upgrade revision인지
+.Release.Service : 서비스명
+
+.Template.Name : 이 템플릿파일의 path. 이걸로 install 가능, helm install CHART <.Template.Name>
+.Template.BasePath : 하나 위의 경로
+
+
+|는 리눅스 명령어처럼 왼쪽 결과를 오른쪽에 넘겨줌
+ex) .Template.Name | default "default value" | upper | quote
+default함수는 값이 있으면 그대로, 없으면 default value를 출력, 대문자로 변환하고, 쌍따옴표를 붙여서 출력
+
+함수
+default, upper, quote, nindent, toYaml
+
+nindent : n (new line) + indent NUM
+indent는 앞에서부터 몇 개의 white space를 넣을건지 결정
+yaml파일에서 굉장히 중요
+
+toYaml .  : with로 잡은 현재 값을 yaml 형태로 출력
+
+{{- if (not) ~~~}}
+{{ 조건 }}
+{{- else}}
+{{ 예외 }}
+{{- end}}
+조건문
+
+조건 여러개도 가능함
+{{- if and 조건1 (not 조건2)}}
+{{- if or 조건1 (조건2)}}
+
+{{- with .Values~}}
+{{- toYaml . | nindent2}}
+{{- else}}
+{{- end}}
+...
+이건 with 뒤에 나오는게 list여야함
+이건 toYaml 함수랑 같이 자주 쓰임
+이러면 iterator 도는 것처럼 리스트 내용이 돌면서 .에 저장
+list가 비어있을 때 예외처리는 {{- else}}로 할 수 있음
+
+변수 선언
+{{$VAR := VALUE}}
+
+반복문
+{{- range LIST}}
+{{- toYaml . }}
+{{- end}}
+
+{{- range $key, $value := LIST}} 도 가능
+
+helper.tpl에서 정의한 함수 호출할 때 
+include와 template사용 가능
+template은 | 를 사용 못한다는 단점
+{{templat "CHART" .}}
+
+default 함수는 
+{{default DEFAULTVALUE VAULE}}
+
+Chart.yml에 dependencies 추가할 수 있음
+```
+  dependencies:
+    - name: mysql
+      version: "8.8.8"
+      repository: "https://bitnami.com~~~"
+      condition: .Values.~
+      import-values:
+        NAME
+```
+로컬에서 생성한 차트일 경우 helm repo CHART 로 경로 확인할 수 있음
+
+이러고 helm dependency update CHART하면
+chart.yml에 명시된 dependency대로 차트를 업데이트해서 chart파일로 가져옴
+이러면 차트를 install할 때 dependency인 차트도 같이 install 됨
+
+helm update dependency 로 dependency 수정을 적용할 수 있고
+이 적용은 chart.lock 파일로 생성됨
+
+condition은 condition이 true/false여부에 따라 dependency를 설치할지 안할지를 결정하게 됨
+
+import-values는 사전에 dependency chart에
+export:
+  service:
+    port: 8080
+이런식ㅇ로
