@@ -11,7 +11,21 @@
 
 ---
 
+## GO Convention 적용
+
+하나의 레거시 코드를 
+
+[기존 코드](https://github.com/choigonyok/blog-project/blob/0c2a248ad7b5ba027516afe034e8c77e60b541f6/src/main.go)
+
+---
+
 ## MVC패턴 적용
+
+기존 코드는 하나의 소스파일에 레거시하게 작성되어있었다.
+
+[기존 코드](https://github.com/choigonyok/blog-project/blob/0c2a248ad7b5ba027516afe034e8c77e60b541f6/src/main.go)
+
+너무 강한 결합으로 묶이고, 유지/보수 관리
 
 ---
 
@@ -27,15 +41,27 @@
 
 ---
 
-## total/today 기능 수정
-
----
-
 ## ' 인식 불가 이슈 해결
 
 ---
 
 ## DB 트랜잭션 구현
+
+---
+
+## total/today 기능 오류
+
+---
+
+## recent posts 오류
+
+---
+
+## reply 삭제 오류
+
+---
+
+## iframe 태그 반응형 오류
 
 ---
 

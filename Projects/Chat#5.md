@@ -177,7 +177,7 @@ QuestionIDOfEmptyAnswerByOrder(order, conn_id)로 answer 테이블에 내가 대
 
 ```go
 go func(){
-	ticker := time.NewTicker(30 * time.Second) // 30초마다 ping 메시지 보내기
+	ticker := time.NewTicker(30 * time.Second) 
 	defer ticker.Stop()
 	for range ticker.C {
     _ := conn.WriteMessage(websocket.PingMessage, nil);
@@ -245,7 +245,7 @@ Is.answer가 1이라는 것은 서버가 클라이언트로부터 받은 메시�
 ```go
 else if chatData[0].Is_file != 1 {
 	chat_id, _ := model.InsertChatAndGetChatID(chatData[0].Text_body, uuid, chatData[0].Write_time, 0, 0)
-	// 어차피 커넥션 당 메시지 하나씩 전송 받으니까 slice index는 0으로 설정
+	
 	chatData[0].Chat_id = chat_id
 } 
 ```
@@ -323,17 +323,17 @@ var target_word, question_contents string
 		fmt.Println("ERROR #44 : ", err.Error())
 	}
 	for r.Next() {
-		// 2. 방금 READ한 채팅에 단어가 있는지 돌면서 확인
+		
 		r.Scan(&target_word, &question_id, &question_contents)	
 		if strings.Contains(chatData[0].Text_body, target_word) {
-			// 3. 단어가 발견되면 이전에 답을 한 전적이 있는지 검색
+			
 			isExist, err := model.CheckAnswerByConnIDandQuestionID(conn_id, question_id)
 			if err != nil {
 				fmt.Println("ERROR #45 : ", err.Error())
 				return
 			}
 
-			// 4. 단어도 발견됐고, 이전에 했던 질문도 아니면 질문 WRITE
+			
 			if !isExist {
 				questiondata := model.ChatData{
 					Text_body: question_contents,
@@ -354,7 +354,7 @@ var target_word, question_contents string
 						fmt.Println("ERROR #46 : ", err.Error())
 					}
 				}
-				// 5. answer에 답 적기 (는 위에 READ에서 처리)
+				
 				err = model.InsertAnswer(chatData[0].Write_time, conn_id, question_id)
 				if err != nil {
 					fmt.Println("ERROR #42 : ", err.Error())

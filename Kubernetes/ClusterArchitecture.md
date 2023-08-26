@@ -1,3 +1,8 @@
+# 쿠버네티스 아키텍처 & 컴포넌트
+# study kubernetes
+
+---
+
 ## 개요
 
 쿠버네티스는 컨테이너 오케스트레이션 플랫폼이다.
@@ -6,13 +11,13 @@
 
 컨테이너 오케스트레이션 플랫폼은 수많은 컨테이너들이 서로 통신하는 과정을 관리하고, 자원을 효율적으로 사용하고, 컨테이너의 상태를 모니터링하며, 컨테이너를 생성/변경/삭제하는 컨테이너 관련된 모든 기능들을 도와주는 플랫폼이다.
 
-쿠버네티스의 기능들과 공부하면서 배운 내용들을 정리해본다.
+쿠버네티스의 아키텍처와 컴포넌트에 대해서 정리해본다.
 
 ---
 
 ## 쿠버네티스 아키텍처
 
-![img](/assets/clusterarchitecture1.svg)
+![img](http://www.choigonyok.com/api/assets/4-1.png)
 
 쿠버네티스에는 **클러스터**가 있다. 클러스터는 추상적인 개념이다.
 
@@ -132,7 +137,7 @@ Controller가 desired state와 current state가 다른 것을 확인하고, Sche
 
 ## 정리
 
-![img](/assets/clusterarchitecture2.png)
+![img](http://www.choigonyok.com/api/assets/48-2.png)
 
 동작시나리오로 예시를 들어 정리하자면 아래와 같다.
 

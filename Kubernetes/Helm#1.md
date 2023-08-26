@@ -223,3 +223,10 @@ export:
   service:
     port: 8080
 이런식ㅇ로
+
+
+helm repo index . 
+현재 차트들에 대한 정보(레포지토리, 차트네임 등)가 담긴 파일 생성
+
+helm repo add NAME URL
+
