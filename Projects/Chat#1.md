@@ -117,10 +117,7 @@
 1. Terraform을 활용한 인프라스트럭처 프로비저닝
 2. Kubeadm과 Containerd를 활용한 쿠버네티스 클러스터 프로비저닝
 3. Kubernetes를 활용한 어플리케이션 배포
-4. Backend에 MVC패턴 적용
-5. Backend Directory에 Go 컨벤션 적용
-6. Gorilla Websocket 활용한 실시간 채팅
-7. 환경변수 설정을 통한 보안 강화
+4. Gorilla Websocket 활용한 실시간 채팅
 
 ---
 
