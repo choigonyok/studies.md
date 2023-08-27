@@ -36,16 +36,13 @@ Calender 컴포넌트 안에 필요한 변수들을 정의했다.
 
 하나하나 살펴보겠다.
 
-
-    const date1 = new Date(); // 06/16, 이달 1일 계산
-    const date2 = new Date(); // 06/16, 이달 1일 계산
-
+    const date1 = new Date();
+    const date2 = new Date();
 
 리액트에서 new Date()는 현재 날짜를 불러온다. 이 값을 date1과 date2에 저장했다.
 
-
     const thisYear = date1.getFullYear();
-    const thisMonth = date1.getMonth(); // thisMonth = 7
+    const thisMonth = date1.getMonth();
     const thisDate = date1.getDate();
 
 현재년도, 현재월, 현재일을 저장하는 thisYear, thisMonth, thisDate를 정의했다.
@@ -54,31 +51,33 @@ Calender 컴포넌트 안에 필요한 변수들을 정의했다.
 
 주의할 점은, getMonth()는 0부터 11사이의 값을 가진다. 1월을 0으로 보는 셈이고, 개발 당시 8월이었기 때문에, 현재 thisMonth에는 7이 저장되어있는 상태다.
 
-    const [month, setMonth] = useState(thisMonth); // 기본값 month = 7
-    const [year, setYear] = useState(thisYear); // 기본값 month = 7
+    const [month, setMonth] = useState(thisMonth);
+    const [year, setYear] = useState(thisYear);
 
-useState인 month와 year는 유동적으로 값이 변하면서 날짜 계산을 위해 사용될 것이다.
+useState인 month와 year는 유동적으로 값이 변하면서 해당 월의 말일 계산, 요일 계산을 위해 사용될 것이다.
 
-날짜계산이라고 함은 해당 월의 말일 계산, 요일 계산 등을 말한다.
-
-    date1.setDate(1); // date1 = 06/01
-    date1.setMonth(month); // date1 = 07/0
+    date1.setDate(1);
+    date1.setMonth(month);
 
 오늘이 며칠인지는 thisDate에 이전에 저장해뒀기 때문에, date1의 date를 1로 변경해준다.
 
-이렇게되면 date1은 **"이번달의 첫 날짜"**를 가리키고 있을 것이다.
+이렇게되면 date1은 **"이번달의 첫 일"**를 가리키고 있을 것이다.
 
-    date2.setDate(1); // date1 = 06/01
-    date2.setMonth(month + 1); // date1 = 07/01
+    date2.setDate(1);
+    date2.setMonth(month + 1);
 
 date2에도 같은 작업을 해준다. 대신 date2에는 month + 1을 해서 다음달 1일을 가리키도록 설정했다.
 
-date2에서 하루를 빼면 전
+date2에서 하루를 빼면 전 날짜를 얻을 수 있고, 다음달 1일의 하루 전 날은 이번달 말일이 된다.
 
     const [dateArray, setDateArray] = useState([]);
     const [weeksArray, setWeeksArray] = useState([]);
 
-weeksArray는 
+dateArray는 해당 월의 주차 수 * 7 크기의 배열에 달력 모양대로 일자를 입력하는 배열이다. 예를 들어, 1월의 1일이 화요일부터 시작되고, 말일인 31일은 목요일에 종료된다고 하면, 이 dateArray는 [0(일),0(월),1(화),2,3,...,29,30,31(목),0(금),0(토)] 이런 식으로 저장될 것이다.
+
+이 배열은 캘린더에 날짜를 표시할 때 사용될 것이다.
+
+weeksArray는 해당 월에 주차 수를 배열에 그대로 집어넣은 배열이다. 이 역시 dateArray와 함께 날짜를 캘린더에 출력할 때 사용된다.
 
 ---
 
@@ -109,7 +108,7 @@ getDay는 요일을 0부터 6까지의 수로 반환한다. 일요일을 한 주
 
     let lastDateOfThisMonth = date2.getDate(date2.setDate(date2.getDate() - 1));
 
-date2는 다음 달 1일을 가리키고 있었다. date2.getDate() - 1을 하면 date2는 이번 달 말일을 가리키게 된다.
+date2는 다음 달 1일을 가리키고 있었다. 위에서 언급했듯이 date2.getDate() - 1을 하면 date2는 이번 달 말일을 가리키게 된다.
 
 setDate로 이 값을 date2의 값으로 저장해주고, 다시 한 번 getDate를 하면 이번 달 말일에 대한 데이터를 date2가 가지고있게 된다.
 
@@ -147,12 +146,14 @@ weeksOfThisMonth는 이번 달이 몇 주까지 있는지에 대한 데이터가
 
 ## Prev, Next Month
 
-로직은 우선 주차 수 * 7만큼 렌더링을 할 건데, 날짜 표시는 첫날부터 마지막날까지만 표시하고 첫 날보다 작거나 말일보다 크면, 이전 달, 다음 달이기 때문에 캘린서에 날짜를 출력하지 않도록 하는 로직이다.
+temp_date는 각 날짜 칸을 이동할 때마다 1씩 더해지게되고, 날짜 칸에는 이 temp_date가 들어가서 모든 날짜에 알맞게 일 수를 표시할 수 있게된다.
+
+그 이후에 루프를 통해 해당 월의 주차 수 * 7만큼 렌더링을 할 건데, 날짜 표시는 첫날부터 마지막날까지만 표시하고 첫 날보다 작거나 말일보다 크면, 이전 달, 다음 달이기 때문에 캘린서에 날짜를 출력하지 않도록 하는 로직이다.
 
     useEffect(() => {
       const array = [];
-      let temp_date = 1; // 날짜 표시
-      for (let i = 0; i < 7 * weeksOfThisMonth; i++) { // 주 수 전체를 표시, 이 달이 아닌건 0으로 저장
+      let temp_date = 1;
+      for (let i = 0; i < 7 * weeksOfThisMonth; i++) {
         if (
           date1.getDay() <= i &&
           i <= lastDateOfThisMonth + date1.getDay() - 1
@@ -172,13 +173,15 @@ weeksOfThisMonth는 이번 달이 몇 주까지 있는지에 대한 데이터가
       setWeeksArray(temp_weeks);
     }, [month]);
 
+
+
 이 useEffect는 next, prev 버튼을 통해 month가 변경될 때마다 month에 맞게 새롭게 계산되면서 해당 월에 맞는 캘린더를 보여줄 수 있게 된다.
 
 ---
 
 ## TroubleShooting
 
-날짜는 알맞게 구현하는데, 해당 월이 출력될 때, 월이 음수로 표시되는 문제가 생겼다.
+날짜는 알맞게 구현됐는데, 해당 월이 출력될 때, 월이 음수로 표시되는 문제가 생겼다.
 
 처음 월을 getMonth()로 받아올 땐 양수인데, 계속 이전달로 넘어가다보면 날짜는 잘 표시되는데 월이 -1월, -2월로 넘어가길래 1월 전은 12월이 되도록, 또 12월 다음은 13월이 아니라 1월이 되도록 month를 설정해줄 필요가 있었다.
 
