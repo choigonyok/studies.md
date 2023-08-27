@@ -11,7 +11,7 @@
 
 ## 웹소켓 업그레이드
 
-채팅을 하기 위해선 HTTP 프로토콜을 Websocket 프로토콜로 업그레이드 해주어야한다.
+실시간 통신에 이용되는 웹소켓 프로토콜은 HTTP를 기반으로한 프로토콜이다. 채팅을 하기 위해선 HTTP 프로토콜을 Websocket 프로토콜로 업그레이드 해주어야한다.
 
 ```go
 var upgrader  = websocket.Upgrader{
@@ -24,11 +24,11 @@ var upgrader  = websocket.Upgrader{
 	}
 ```
 
-Write/ReadBufferSize와 CheckOrigin은 웹소켓 공식문서를 번역할 글 2편에서 확인할 수 있다.
+Write/ReadBufferSize와 CheckOrigin은 이 블로그의 게시글인 **"웹소켓 공식문서 번역 #2"**에서 확인할 수 있다.
 
-간단히 말하자면 버퍼의 크기를 적절히 설정해줘야 웹소켓 통신의 성능이 보장되고, 웹소켓 통신에서 Origin을 체크하는 건 서버가 담당하는 역할이기에 올바론 요청인지 서버에서 유효성을 검사한다.
+여기서 간단하게 말하자면 버퍼의 크기를 적절히 설정해줘야 웹소켓 통신의 성능이 보장되고, 웹소켓 통신에서 Origin을 체크하는 건 서버가 담당하는 역할이기에 올바론 요청인지 서버에서 유효성을 검사한다.
 
-## 
+## 커넥션 생성
 
 ```go
 conn, _ := upgrader.Upgrade(c.Writer, c.Request, nil)
@@ -46,13 +46,13 @@ websocket.Upgrader로 리턴받은 upgrader의 Upgrade메서드를 사용해서 
 
 ### conns map
 
-뮤텍스 락으로 둘러쌓여있는 conns는 string 타입은 uuid를 키, *websocket.Conn을 값으로 갖는 map이다.
+mutex lock으로 둘러쌓여있는 conns는 string 타입인 uuid를 키, *websocket.Conn을 값으로 갖는 map 배열이다.
 
-웹소켓에서 중요한 개념은 **커넥션은 상대방과 맺는 것이 아니라, 클라이언트와 서버 간에 맺는 것이라는 것이다.**
+내가 헷갈렸던 웹소켓에서 중요한 개념은 **커넥션은 상대방과 맺는 것이 아니라, 클라이언트와 서버 간에 맺는 것이라는 것이다.** 2인 채팅서비스면 채팅 이용자들끼리 커넥션을 맺는게 아니라 각각 서버와 커넥션을 맺고, 서버가 실시간으로 알맞은 사용자에게 채팅을 전달해주는 방식이다.
 
 따라서 내가 보낸 채팅이 다른 사람이 아닌 나와 상대방에게만 도착하도록 하려면, 나의 커넥션과 상대방의 커넥션이 관련이 있다는 걸 서버가 알 수 있게 해야한다.
 
-뮤텍스락을 구현한 이유는 아래 메시지 송/수신 섹션의 target_conn에서 설명하겠다.
+이 때 conns map이 사용된다. 커넥션이 종료될 때 defer문으로 conns map의 value를 nil로 변경하는 과정을 뮤텍스 락으로 감싼 이유는 아래 메시지 **송/수신 섹션의 target_conn**에서 설명하겠다.
 
 ```go
 var conns = make(map[string]*websocket.Conn)
@@ -232,15 +232,13 @@ if chatData[0].Is_answer == 1 {
 
 chatData는 채팅 데이터 struct이다. 이 chatData에는, 이 채팅이 question인지, question에 대한 답변인지, 누가/언제/어느 커넥션으로 쓴 것인지에 대한 정보가 담긴다.
 
-Is.answer가 1이라는 것은 서버가 클라이언트로부터 받은 메시지가 question에 대한 답변이라는 것을 의마한다.
+Is.answer가 1이라는 것은 서버가 클라이언트로부터 받은 메시지가 question에 대한 답변이라는 것을 의마한다. 이 경우 recieveAnswer()로 DB answer 테이블에 사용자가 답변한 내용을 저장한다.
 
-이 경우 recieveAnswer()로 DB answer 테이블에 사용자가 답변한 내용을 저장한다.
+recieveAnswer()는 가독성을 위해 따로 question 관련 쓰기/읽기 함수를 분리해두었다. recieveAnswer()에 대한 내용은 글의 마지막에서 확인할 수 있다.
 
 만약 답변이 아니라 Is.deleted가 1이라는 것은 해당 채팅을 삭제하겠다는 것을 의미한다.
 
-만약 그 채팅이 Is_file == 1로, 파일 전송 채팅이라면, 채팅만 지우면 안되고 서버에 저장되어있던 파일도 같이 지워줘야한다.
-
-그래서 파일을 삭제하고, 만약 Is_file이 1이 아니면 DeleteChatByChatID()로 chat table의 채팅만 삭제한다.
+만약 그 채팅이 Is_file == 1로, 파일 전송 채팅이라면, 채팅만 지우면 안되고 서버에 저장되어있던 파일도 같이 지워줘야한다. 그래서 파일을 삭제하고, 만약 Is_file이 1이 아니면 DeleteChatByChatID()로 chat table의 채팅만 삭제한다.
 
 ```go
 else if chatData[0].Is_file != 1 {
@@ -263,9 +261,7 @@ else {
 }
 ```
 
-이 else는 채팅이 답변도 아니고 일반 채팅도 아닌 경우를 의미하고, 이 경우는 파일 전송인 것이다.
-
-파일은 따로 HTTP요청을 통해 먼저 저장되어있기 때문에, 가장 최근 파일의 chatID를 확인해서 
+이 else는 채팅이 답변도 아니고 일반 채팅도 아닌 경우를 의미하고, 이 경우는 파일 전송인 것이다. 파일은 따로 HTTP요청을 통해 먼저 저장되어있기 때문에, 가장 최근 파일의 chatID를 확인해서 
 
 ```go
 target_conn := []*websocket.Conn{}
@@ -291,9 +287,7 @@ mutex.Unlock()
 
 아까 살펴본 conns map을 확인해서 nil이 아닌지(상대방의 커넥션이 종료되었는지 아닌지)를 확인해 알맞게 target_conn에 append한다.
 
-이 부분이 mutex lock이 걸려있는 이유는 맨처음 프로토콜을 웹소켓으로 업그레이드한 이후에 conns map에 uuid를 키로, conn을 값으로 넣어뒀었다. 
-
-그 부분과 이 부분이 락이 걸려있지 않으면, 매시지를 상대방에게 보내던 도중 커넥션이 끊겨 오류가 발생할 수 있다.
+이 부분이 mutex lock이 걸려있는 이유는 맨처음 프로토콜을 웹소켓으로 업그레이드한 이후에 conns map에 uuid를 키로, conn을 값으로 넣어뒀었다. 만약 그 부분과 이 부분이 서로 락이 걸려있지 않은 상태여서 비동기적으로 실행이 가능하다면, 매시지를 상대방에게 보내던 도중 커넥션이 끊겨 오류가 발생할 수 있다.
 
 그래서 연결이 먼저 끊어질 거면 먼저 끊고 target_conn에는 나만 append한다던지, 아니면 먼저 메시지를 보낼거면 target_conn에 둘 다 넣어서 메시지를 보내고 나서 연결을 끊을 것인지를 확실하게 할 수 있다.
 
@@ -316,50 +310,58 @@ sendQuestion(chatData, conn_id, target_conn)
 
 ```go
 var target_word, question_contents string
-	var question_id int
-	r, err := model.SelectQuetions()
-	defer r.Close()
-	if err != nil {
-		fmt.Println("ERROR #44 : ", err.Error())
+var question_id int
+r, _ := model.SelectQuetions()
+defer r.Close()
+for r.Next() {
+r.Scan(&target_word, &question_id, &question_contents)	
+if strings.Contains(chatData[0].Text_body, target_word) {
+	isExist, _ := model.CheckAnswerByConnIDandQuestionID(conn_id, question_id)
+	if !isExist {
+		questiondata := model.ChatData{
+			Text_body: question_contents,
+			Writer_id: "question",
+			Write_time: time.Now().Format("2006/01/02 03:04"),
+			Is_answer: 1,
+			Is_deleted: 0,
+			Is_file: 0,
+			Chat_id: 0,
+			Question_id: question_id,
+		}
+		questiondatas := []model.ChatData{}
+		questiondatas = append(questiondatas, questiondata)
+		for _, item := range target_conn {
+			item.WriteJSON(questiondatas)
+		}
+		model.InsertAnswer(chatData[0].Write_time, conn_id, question_id)
 	}
-	for r.Next() {
-		
-		r.Scan(&target_word, &question_id, &question_contents)	
-		if strings.Contains(chatData[0].Text_body, target_word) {
-			
-			isExist, err := model.CheckAnswerByConnIDandQuestionID(conn_id, question_id)
-			if err != nil {
-				fmt.Println("ERROR #45 : ", err.Error())
-				return
-			}
+}
+}
+```
 
-			
-			if !isExist {
-				questiondata := model.ChatData{
-					Text_body: question_contents,
-					Writer_id: "question",
-					Write_time: time.Now().Format("2006/01/02 03:04"),
-					Is_answer: 1,
-					Is_deleted: 0,
-					Is_file: 0,
-					Chat_id: 0,
-					Question_id: question_id,
-				}
-				questiondatas := []model.ChatData{}
-				questiondatas = append(questiondatas, questiondata)
+---
 
-				for _, item := range target_conn {
-					err := item.WriteJSON(questiondatas)
-					if err != nil {
-						fmt.Println("ERROR #46 : ", err.Error())
-					}
-				}
-				
-				err = model.InsertAnswer(chatData[0].Write_time, conn_id, question_id)
-				if err != nil {
-					fmt.Println("ERROR #42 : ", err.Error())
-				}
-			}
+## recieveAnswer()
+
+팝업된 question에 대해 사용자가 답변을 했을 때, 해당 답변을 처리하는 함수이다. sendQuestion()과 마찬가지로 메시지 송/수신 함수에 너무 많은 기능이 들어가있어서 가독성을 위해 분리했다.
+
+question을 커넥션으로 전송할 때, 빈 answer 레코드를 생성하기 때문에, 사용자로부터 답변을 받으면 해당 answer의 값을 사용자가 답변한 값으로 업데이트한다.
+
+```go
+func recieveAnswer(uuid string, conn_id int, chatData []model.ChatData, first_uuid string){
+	isExist, _ := model.CheckAnswerByConnIDandQuestionID(conn_id, chatData[0].Question_id)
+	if isExist {
+		if first_uuid == uuid {
+			model.UpdateFirstAnswerByQuestionID(chatData[0].Text_body, chatData[0].Question_id)
+		} else {
+			model.UpdateSecondAnswerByQuestionID(chatData[0].Text_body, chatData[0].Question_id)
 		}
 	}
-  ```
+}
+```
+
+우선, model.CheckAnswerByConnIDandQuestionID()로 answer 레코드가 정상적으로 생성되어있는지 확인한다.
+
+그리고 존재하면(isExist == true) 답변한 사용자가 커넥션 유저 중 first_uuid인지, second_uuid인지를 parameter로 입력받아서 answer table의 알맞은 column을 업데이트해준다.
+
+나중에는 이 레코드 값을 보고 chatPage의 answer 기능에서 연인들이 한 답변을 서로 볼 수 있는 기능이 제공된다.
