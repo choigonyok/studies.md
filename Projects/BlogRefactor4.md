@@ -9,6 +9,19 @@
 
 [github: 리팩토링 이전 레거시 코드](https://github.com/choigonyok/blog-project/blob/0c2a248ad7b5ba027516afe034e8c77e60b541f6/src/main.go)
 
+아래 내용들을 적용하기로 했다.
+
+    1. GO Convention 적용
+    2. MVC패턴 적용
+    3. API 경로 재작성
+    4. 함수/변수명 정리
+    5. 코드 재사용성 높이기
+    6. ' 심볼 DB 저장 불가 이슈 해결
+    7. DB 트랜잭션 구현
+    8. today/total 기능 오류 해결
+    9. recent posts 오류 해결
+    10. reply 삭제 오류 해결
+
 ---
 
 ## GO Convention 적용
@@ -29,7 +42,7 @@
 
 ---
 
-## API 정리
+## API 경로 재작성
 
 ---
 
@@ -41,7 +54,7 @@
 
 ---
 
-## ' 인식 불가 이슈 해결
+## ' 심볼 DB 저장 불가 이슈 해결
 
 ---
 
@@ -49,29 +62,16 @@
 
 ---
 
-## total/today 기능 오류
+## total/today 기능 오류 해결
 
 ---
 
-## recent posts 오류
+## recent posts 오류 해결
 
 ---
 
-## reply 삭제 오류
-
----
-
-## iframe 태그 반응형 오류
+## reply 삭제 오류 해결
 
 ---
 
 ## 정리
-
-
-
-
-1. 백엔드리팩토링
-2. 리팩토링 개발환경을 위한 도커파일 작성
-3. 쿠버네티스를 위한 yaml파일 작성
-4. 반응형
-5. 배포
