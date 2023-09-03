@@ -1,4 +1,4 @@
-# Setup Dev Environment w/ KIND for Kubernetes
+# KIND로 쿠버네티스 개발환경 구축하기
 # study kubernetes
 
 ---
@@ -154,6 +154,8 @@ Kind가 잘 설치되었는지는
 
     kind delete cluster
 
+커맨드를 입력하면 kind 클러스터 생성 및 삭제가 가능하다.
+
 ---
 
 ## Container Image Deploy
@@ -176,7 +178,7 @@ Kind가 잘 설치되었는지는
 
 아무 복잡한 설정 없이 로컬에서 쿠버네티스 control plane Pod들이 잘 실행되고 있는 걸 확인할 수 있다.
 
-## Build Container Image
+---
 
 ## multi-node Cluster
 
@@ -205,6 +207,8 @@ kind에서는 멀티 노드 클러스터를 넘어서 클러스터 자체도 여
 
 커맨드로 삭제해준 후 config를 적용해서 재생성하면 된다.
 
+---
+
 ## 리소스 사용량
 
 우선 마스터노드 1개로 테스트 클러스터를 생성했다. 마스터노드에만 여러 컨트롤 플레인 파드들이 배치되어있는 상태이다.
@@ -221,9 +225,15 @@ kind에서는 멀티 노드 클러스터를 넘어서 클러스터 자체도 여
 
 이후에 배포될 Istio가 일반적으로 3~4GiB의 Memory를 사용하는 것을 감안하면 상당히 큰 용량을 차지하는 것을 알 수 있다.
 
-## 외부 포트매핑
+---
 
-외부에서 이 로컬 클러스에 접근하기 위해서는 포트매핑이 필요하다. Istio의 Ingress Gateway로 연 포트에 
+## 클러스터 외부 접근 테스트
+
+실제 이 클러스터에 어플리케이션을 배포하면 외부에서 잘 접근이 되는지 확인해보자. 간단하게 블로그 서비스의 프론트엔드만 kind 클러스터에 배포해보겠다.
+
+### 1. 클러스터 설정 yaml 파일 작성
+
+외부에서 kind Cluster로 접근하기 위해서는 처음 클러스터를 생성할 때 설정을 해줘야한다.
 
 ```yaml
 kind: Cluster
@@ -231,12 +241,112 @@ apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
 - role: control-plane
   extraPortMappings:
-  - containerPort: 80
+  - containerPort: 30000
     hostPort: 80
 ```
 
-## Istio와 연동
+이렇게 설정하면 외부에서 hostPort인 80번으로 접근하면, kind 클러스터의 30000포트로 포트 포워딩이 가능해진다.
 
-kind는 놀랍게도 서비스메시인 istio도 설치가 가능하다. Istio 공식 문서에서 kind 관련 내용을 다룬다.
+### 2. yaml 파일 적용해서 클러스터 생성
 
-https://istio.io/latest/docs/setup/platform-setup/kind/
+    kind create cluster --config YAML_FILE
+
+위 커맨드를 사용해서 yaml 파일 내용이 적용된 kind 클러스터를 생성할 수 있다.
+
+### 3. 컨테이너 이미지 빌드
+
+    docker build -t frontend:v1 .
+
+이미지 이름을 지₩정하고 태그를 붙여서 이미지를 빌드해준다. 태그는 원래 따로 붙이지 않으면 도커가 알아서 latest 태그를 붙여 빌드한다. kind는 latest 태그가 붙은 이미지를 읽지 못한다. 그래서 태그를 unique string으로 명시적인 설정을 해줘야한다.
+
+### 4. 이미지 load
+
+일반적인 운영환경 쿠버네티스라면 로컬에서 이미지를 빌드하고 이미지 레지스트리에 푸시해서 쿠버네티스 매니페스트로 이미지를 pull하겠지만, 로컬에서는 굳이 이미지 레지스트리를 거칠 필요가 없다. 그냥 빌드한 이미지를 kind 클러스터 안에 load 해주면된다.
+
+    kind load docker-image IMAGE_NAME:TAG
+
+멀티 노드 클러스터라면 모든 노드에 이미지를 알아서 load하기 때문에, 위 명령어만 실행하면 된다.
+
+### 5. 매니페스트 작성
+
+쿠버네티스 오브젝트를 만들기 위한 매니페스트를 작성한다.
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: frontend
+  name: frontend-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - image: frontend:v3
+        name: frontend
+        ports:
+        - containerPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+spec:
+  selector:
+    app: frontend
+  type: NodePort
+  ports:
+    - port: 3000
+      nodePort: 30000
+```
+
+다른 부분은 일반 쿠버네티스 매니페스트와 동일하고, Deployment에서 containerPort를 3000번으로 지정한 이유는, 리액트 컨테이너의 port를 도커파일에서 3000번으로 EXPOSE 했기 때문이다.
+
+또, Service에서 port는 Deployment의 containerPort와 동일해야한다. nodePort는 따로 명시하지 않으면 30000 ~ 32767 범위 내에서 랜덤으로 설정되는데, 이전에 클러스터 설정 yaml파일에서 설정한 containerPort와 연결될 수 있도록 노드포트를 30000으로 명시해주었다.
+
+### 6. 매니페스트 적용
+
+    kubectl apply -f MANIFEST_YAML_FILE
+
+위 커맨드로 방금 작성한 매니페스트를 적용해주면 정상적으로 Pod, Service, Deployment 오브젝트가 생성된다.
+
+### 7. 브라우저 테스트
+
+브라우저에서는
+
+    http://localhost:30000
+
+으로 접근할 수도 있고,
+
+    kubectl cluster-info --context kind-kind
+
+위 커맨드로 kind cluster의 IP주소를 확인해서
+
+    http://127.0.0.1:30000
+
+으로 접속할 수도 있다.
+
+만약 클러스터를 default name인 kind로 생성하지 않고, 임의의 이름을 지정해서 생성했다면
+
+    kubectl config get-clusters
+
+위 커맨드는 현재 실행중인 **클러스터들**을 출력한다. 이 커맨드로 cluster의 이름을 확인하고,
+
+    kubectl cluster-info --context CLUSTER_NAME
+
+을 실행하면 IP주소를 확인할 수 있을 것이다.
+
+해당 주소로 접근하면 배포한 서비스가 정상적으로 실행되는 것을 확인할 수 있다.
+
+---
+
+## 참고
+
+https://medium.com/@talhakhalid101/creating-a-kubernetes-cluster-for-development-with-kind-189df2cb0792
