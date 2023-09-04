@@ -17,7 +17,7 @@ Skaffold(이하 스캐폴드)는 컨테이너 기반 또는 쿠버네티스 기�
 
 스캐폴드의 워크플로우는 다음과 같다.
 
-![img](../assets/Skaffold1.png)
+![img](http://www.choigonyok.com/api/assets/66-1.png)
 
 ---
 
@@ -178,4 +178,5 @@ skaffold dev --keep-running-on-failure
 ## 참고
 
 [Skaffold Official Documentation](https://skaffold.dev/docs/)
+
 [skaffold.yaml](https://skaffold.dev/docs/references/yaml/)

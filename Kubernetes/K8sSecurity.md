@@ -143,3 +143,12 @@ https://github.com/nodejs/docker-node/blob/1a4f3d2d0c914b4468ba9675cedf70a2f4f0f
 https://www.howtogeek.com/devops/why-processes-in-docker-containers-shouldnt-run-as-root/
 
 https://docs.bitnami.com/tutorials/why-non-root-containers-are-important-for-security
+
+# CVE
+# CVE
+# CVE
+# CVE
+# CVE
+
+# CVE
+# CVE
