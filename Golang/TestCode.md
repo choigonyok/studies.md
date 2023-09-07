@@ -29,7 +29,7 @@ TDD와 테스트 코드의 중요성에 대해서는 많이 들어봤지만 그�
 
 테스트 코드를 작성했다면 문제가 발생한 즉시 해결할 수 있었을 것이다. 그럼 A기능과 관련된 코드들을 수정할 필요 또한 없었을 것이다.
 
-![img](/assets/TestCode1.png)
+![img](http://www.choigonyok.com/api/assets/67-1.png)
 
 위 그래프처럼 프로그램이 개발 완료 시점에 다다를수록 테스트 코드를 작성하지 않은 프로젝트는 그 비용이 기하급수적으로 증가하게된다.
 
@@ -41,7 +41,7 @@ TDD와 테스트 코드의 중요성에 대해서는 많이 들어봤지만 그�
 
 테스트는 크게 유닛 테스트, 통합 테스트, e2e 테스트로 나뉘고, 유닛 -> 통합 -> e2e의 순서로 테스트가 진행된다.
 
-![img](/assets/TestCode2.jpeg)
+![img](http://www.choigonyok.com/api/assets/67-2.jpeg)
 
 ### 유닛 테스트
 
@@ -65,7 +65,7 @@ TDD와 테스트 코드의 중요성에 대해서는 많이 들어봤지만 그�
 
 통합테스트를 수행할 때는 시나리오를 작성한다.
 
-![img](/assets/TestCode3.png)
+![img](http://www.choigonyok.com/api/assets/67-3.png)
 
 앞서 언급한 예시대로라면, Test Case Objective는 **사용자가 입력한 게시글이 정상적으로 잘 저장되는지 확인**이 되고, Test Case Description은 **작성페이지에서 글을 입력 후 작성완료 버튼을 클릭**이 되고, Expected Result는 **post table에 제목, 내용, 작성자가 정상적으로 삽입**이 될 수 있겠다.
 
@@ -178,7 +178,7 @@ go test -cover .
 
 이 커맨드를 실행하면
 
-![img](/assets/TestCode4.png)
+![img](http://www.choigonyok.com/api/assets/67-4.png)
 
 이런 식으로 테스트의 결과, 테스트에 걸린 시간, 코드의 커버리지를 확인할 수 있다.
 

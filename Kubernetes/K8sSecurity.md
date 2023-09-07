@@ -145,10 +145,24 @@ https://www.howtogeek.com/devops/why-processes-in-docker-containers-shouldnt-run
 https://docs.bitnami.com/tutorials/why-non-root-containers-are-important-for-security
 
 # CVE
-# CVE
-# CVE
-# CVE
-# CVE
 
-# CVE
-# CVE
+# 보안
+
+- AWS의 보안그룹 (L4 방화벽)
+- K8S securityContext (컨테이너 권한 보안)
+- K8S RBAC (api server 등 K8S 리소스 접근 권한)
+- K8S NetworkPolicy (IP/포트 별 방화벽 4계층)
+- Istio Ingress Gateway TLS종료 (HTTPS)
+- Istio RBAC (인증서기반 서비스 간 통신 방화벽)
+- Istio mTLS (서비스 간 HTTPS 통신)
+- Istio RequestAuthentication(JWT기반 서비스에 대한 인증)
+- Istio AuthorizationPolicy (Allow, Deny를 통한 7계층 방화벽과 유사한 형태, 페이로드 내용 확인안하는 거 빼고 다 함. 서비스 이름/헤더/JWT/요청경로/method로 트래픽을 거름)
+
+IP주소/포트/요청경로/헤더(JWT) 기반 인가 - 해당 서비스에 권한이 있는 클라이언트만 접근할 수 있게
+JWT기반 마이크로서비스 별 인증 - 인증된 클라이언트만 어플리케이션에 접근하게
+마이크로서비스 간 HTTPS 통신 - 마이크로서비스간 요청을 암호화
+마이크로서비스 간 인증서 기반 방화벽 - 마이크로서비스가 특정 서비스에만 접근 가능하게
+쿠버네티스와 외부간 HTTPS 통신 - 클라이언트의 요청을 암호화
+컨테이너 권한 관련 보안 - 컨테이너가 필요한 권한만을 가지게
+쿠버네티스 리소스 접근 제어 - API서버에 함부로 접근하지 못하게
+쿠버네티스 파드 간 IP주소/포트 기반 통신 방화벽 - 파드들이 특정 파드에만 접근 가능하게
