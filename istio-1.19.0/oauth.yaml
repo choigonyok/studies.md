@@ -1,0 +1,72 @@
+config:
+  # OAuth client ID
+  clientID: "<CLIENT_ID>"
+  # OAuth client secret
+  clientSecret: "<CLIENT_SECRET>"
+  # Create a new secret with the following command
+  # openssl rand -base64 32 | head -c 32 | base64
+  # Use an existing secret for OAuth2 credentials (see secret.yaml for required fields)
+  # Example:
+  # existingSecret: secret
+  cookieSecret: "<COOKIE_SECRET>"
+  # The name of the cookie that oauth2-proxy will create
+  # If left empty, it will default to the release name
+  cookieName: ""
+  google: {}
+    # adminEmail: xxxx
+    # serviceAccountJson: xxxx
+    # Alternatively, use an existing secret (see google-secret.yaml for required fields)
+    # Example:
+    # existingSecret: google-secret
+  # Default configuration, to be overridden
+  configFile: |-
+    email_domains = [ "*" ]
+    upstreams = [ "file:///dev/null" ]
+  # Custom configuration file: oauth2_proxy.cfg
+  # configFile: |-
+  #   pass_basic_auth = false
+  #   pass_access_token = true
+  # Use an existing config map (see configmap.yaml for required fields)
+  # Example:
+  # existingConfig: config
+
+image:
+  repository: "quay.io/oauth2-proxy/oauth2-proxy"
+  tag: "v7.1.3"
+  pullPolicy: "IfNotPresent"
+
+# Optionally specify an array of imagePullSecrets.
+# Secrets must be manually created in the namespace.
+# ref: https://kubernetes.io/docs/concepts/containers/images/#specifying-imagepullsecrets-on-a-pod
+# imagePullSecrets:
+  # - name: myRegistryKeySecretName
+
+extraArgs: 
+  provider: oidc
+  cookie-secure: false
+  cookie-domain: "<COOKIE_DOMAIN>"
+  cookie-samesite: lax
+  cookie-refresh: 1h
+  cookie-expire: 4h
+  set-xauthrequest: true
+  reverse-proxy: true
+  pass-access-token: true # X-Auth-Request-Access-Token, must first enable --set-xauthrequest
+  set-authorization-header: true # Authorization: Bearer <JWT>
+  pass-authorization-header: true # pass OIDC IDToken to upstream via Authorization Bearer header
+  pass-user-headers: true
+  pass-host-header: true # pass the request Host Header to upstream
+  pass-access-token: true
+  scope: "openid email"
+  upstream: static://200
+  skip-provider-button: true
+  whitelist-domain: <WHITELIST_DOMAIN>
+  login-url: <LOGIN_URL>
+  oidc-jwks-url: <JWKS_URL> # this is accessed by proxy in-mesh - http
+  redeem-url: <REDEEM_URL> # This is accessed by proxy in-mesh - http
+  skip-oidc-discovery: true
+  redirect-url: <REDIRECT_URL>
+  oidc-issuer-url: <ISSUER_URL>
+  standard-logging: true
+  auth-logging: true
+  request-logging: true
+extraEnv: []

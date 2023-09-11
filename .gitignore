@@ -3,3 +3,4 @@ assets/*
 kindClusterConfig.yml
 kindManifest.yml
 DevEnv.md
+kindJenkins.yaml
