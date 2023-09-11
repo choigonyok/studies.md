@@ -1,4 +1,4 @@
-# rabbitmq deployment in K8S
+# RabbitMQ 서버 쿠버네티스 클러스터에 구축하기
 # kubernetes msa ops
 
 ---
@@ -19,9 +19,13 @@ kubectl apply -f https://github.com/rabbitmq/cluster-operator/releases/latest/do
 
 이 manifest 안에는 rabbitMQ를 배포할 수 있는 CRD, rabbitmq-system Namespace, rabbitMQ를 위한 RBAC, ServiceAccount 등의 설정들이 포함되어있다. 아래와 같은 오브젝트들이 생성된 걸 확인할 수 있다.
 
-![img](/assets/RabbitMQ1.png)
+![img](http://www.choigonyok.com/api/assets/74-1.png)
 
 이것만 한다고 rabbitMQ가 배포되는 것은 아니고, rabbitMQ를 위한 환경을 구성한 것이기 때문에 추가적으로 rabbitMQ를 배포해준다.
+
+---
+
+## RabbitmqCluster 배포
 
 ```yaml
 apiVersion: rabbitmq.com/v1beta1
@@ -64,17 +68,23 @@ Password를 설정한다. 이 Password는 이후에 rabbitMQ dashboard UI에서 
 
 ### spec.rabbitmq.additionalConfig.default_user_tags.administrator
 
+위 default_user에서 선언한 유저에게 admin 권한을 줄 것을 명시한다.
+
 ### spec.rabbitmq.additionalConfig.channel_max
 
 메시지를 전달할 수 있는 최대 채널의 수를 설정한다. 프로젝트의 구성, 서비스의 규모와 트래픽에 따라 다르게 설정해야할 것이다.
 
 우선 예시로 1000을 설정해두었다.
 
+<br/>
+
 kubectl apply -f - 를 통해서 설정대로 RabbitmqCluster를 쿠버네티스 클러스터에 배포해준다. 그럼 아래와 같이 rabbitMQ Pod와 SVC가 잘 실행중인 걸 확인할 수 있다.
 
-![img](/assets/RabbitMQ2.png)
+![img](http://www.choigonyok.com/api/assets/74-2.png)
 
-![img](/assets/RabbitMQ3.png)
+![img](http://www.choigonyok.com/api/assets/74-3.png)
+
+### EXTERNAL-IP PENDING
 
 rabbitMQ를 로드밸런서 타입으로 생성했는데 EXTERNAL-IP가 pending 상태이다. 이건 내가 KIND 클러스터 위에 rabbitMQ를 배포했기 때문이다. KIND는 kubeadm을 기반으로 로컬 쿠버네티스 클러스터를 구성한다. kubeadm 등의 베어메탈 도구로 구성된 클러스터는 로드밸런서 타입 서비스를 지원하지 않는다.
 
@@ -88,13 +98,15 @@ rabbitMQ를 로드밸런서 타입으로 생성했는데 EXTERNAL-IP가 pending 
 
 어쨌든 EXTERNAL-IP를 할당하기 위해 metalLB를 사용하면 아래와 같이 metalLB Pod들이 생성되고,
 
-![img](/assets/RabbitMQ4.png)
+![img](http://www.choigonyok.com/api/assets/74-4.png)
 
 아래와 같이 pending 상태이던 rabbitmq Service의 EXTERNAL-IP도 자동으로 IP가 할당된 것을 확인할 수 있다.
 
-![img](/assets/RabbitMQ5.png)
+![img](http://www.choigonyok.com/api/assets/74-5.png)
 
 KIND로 클러스터를 생성할 때 --config 옵션으로 30080포트만을 열어주었기 때문에 rabbitmq Service의 포트도 변경해주어야한다. 
+
+### Port Re-assign
 
 ```
 kubectl edit svc RABBITMQ_SERVICE_NAME
@@ -102,39 +114,27 @@ kubectl edit svc RABBITMQ_SERVICE_NAME
 
 로 rabbitMQ Service YAML 파일에 접근해서 http 프로토콜의 포트를 30080로 변경 후 저장하면 아래와 같이 포트가 잘 지정된 것을 확인할 수 있다.
 
-![img](/assets/RabbitMQ6.png)
+![img](http://www.choigonyok.com/api/assets/74-6.png)
 
 이 로드밸런서 타입 서비스는 Dashboard Web UI에 접근하기 위한 서비스이다.
 
+---
 
-
-처음 RabbitmqCluster 오브젝트를 생성할 때 default_user, default_pass를 설정해주었지만, 쿠버네티스에서는 rabbitMQ를 위한 시크릿 오브젝트가 생성되고, 이 시크릿을 사용하기도한다. 
-
-시크릿에 저장되어있는 user/pass는 아래 커맨드로 확인할 수 있다.
-
-```
-$ kubectl get secret production-rabbitmqcluster-default-user -o jsonpath='{.data.username}' | base64 --decode
-
-$ kubectl get secret production-rabbitmqcluster-default-user -o jsonpath='{.data.password}' | base64 --decode
-```
-
-쿠버네티스 시크릿은 항상 base64로 인코딩된 시크릿이 저장된다. 그래서 | base64 --decode로 복호화를 해줘야한다.
-
-
+## Web Dashboard UI 확인
 
 
 이제 localhost:30080 또는 실제 운영환경에서 이 글을 따라 rabbitMQ를 배포했다면 rabbitMQ Loadbalancer type Service의 EXTERNAL-IP:30080으로 접근하면 아래 사진처럼 웹 UI가 잘 실행되는 걸 확인할 수 있다.
 
-![img](/assets/RabbitMQ7.png)
+![img](http://www.choigonyok.com/api/assets/74-7.png)
 
 RabbitmqCluster YAML 파일에서 설정한 user/pass인 guest:guest를 입력하면 정상적으로 로그인이 가능하다.
 
-![img](/assets/RabbitMQ8.png)
+![img](http://www.choigonyok.com/api/assets/74-8.png)
 
 
 실제 rabbitMQ를 이용해 통신을 할 때는 30080포트를 이용하지 않는다. 30080포트는 웹 UI를 사용하기 위한 포트이고, 서비스간 통신은 AMQP 프로토콜 기반으로 메시지를 주고받는다.
 
-![img](/assets/RabbitMQ9.png)
+![img](http://www.choigonyok.com/api/assets/74-9.png)
 
 따라서 5672포트를 이용해서 통신해야한다. rabbitMQ도 클러스터 내부에서 하나의 네트워크를 공유하기 때문에 NodePort를 사용하지 않고도 서비스 디스커버리나 ClusterIP를 이용해 rabbitMQ와의 통신을 구현하면 되겠다.
 
