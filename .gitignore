@@ -4,3 +4,4 @@ kindClusterConfig.yml
 kindManifest.yml
 DevEnv.md
 kindJenkins.yaml
+istioConfig.yml

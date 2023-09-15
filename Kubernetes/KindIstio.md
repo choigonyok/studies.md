@@ -121,7 +121,7 @@ kubectl edit service istio-ingressgateway -n istio-system
     nodePort: 30080
     port: 80
     protocol: TCP
-    targetPort: 3000
+    targetPort: 8080
 ```
 
 nodePort를 클러스터 생성시 설정한 extraPort로 변경시킨다. port는 nodePort 경로로 들어온 트래픽이 Gateway 오브젝트로 전달될 port를 의미하고, targetPort는 @

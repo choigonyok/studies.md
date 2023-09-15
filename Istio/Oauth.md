@@ -46,10 +46,142 @@ Istio, Oauth2-proxy, Keycloak가 실질적으로 어떻게 작동하는지에 �
 
 ## 구현
 
+kind 클러스터 config파일과 함께 create
+
+istioctl install -f config.yml로 meshConfig 설정하면서 생성
+생성후 수정도 같은 명령어로 가능
 
 
+### gateway 생성
 
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: gateway
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
 
+### 게이트웨이가 라우팅할 규칙
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: vs
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - gateway
+  http:
+  - match:
+    - uri:
+        prefix: /oauth2
+    route:
+    - destination:
+        host: oauth2-proxy.default.svc.cluster.local
+        port:
+          number: 80          
+  - match:
+    - uri:
+        prefix: /app
+    route:
+    - destination:
+        host: echo.default.svc.cluster.local
+        port:
+          number: 80        
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: keycloak.default.svc.cluster.local
+        port:
+          number: 8080  
+
+### oauth2-proxy의 포워딩을 위한 규칙
+kind: AuthorizationPolicy
+apiVersion: security.istio.io/v1beta1
+metadata:
+  name: ext-authz-oauth2-proxy
+  namespace: istio-system
+spec:
+  selector:
+    matchLabels:
+      istio: ingressgateway
+  action: CUSTOM
+  provider:
+    name: oauth2-proxy
+  rules:
+    - to:
+        - operation:
+            hosts: ["localhost"]
+            notPaths: ["/realm/*"]
+### oauth2-proxy가 배포될 때 적용할 config 파일
+  config:
+    clientID: "1003120694761-605icm9ht94b2advttpgobld809hu8bm.apps.googleusercontent.com"
+    clientSecret: "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"
+    cookieSecret: "TnpGZkFIbER6Rm5RR1NOazkwMnN5cFRuckt5czFYVUw="
+    cookieName: "my-cookie"
+    configFile: |-
+      provider = "oidc"
+      oidc_issuer_url="https://localhost/auth/realms/my-realm"
+      profile_url="https://localhost/auth/realms/my-realm/protocol/openid-connect/userinfo"
+      validate_url="https://localhost/auth/realms/my-realm/protocol/openid-connect/userinfo"
+      scope="my-scope openid email profile"
+      pass_host_header = true
+      reverse_proxy = true
+      auth_logging = true
+      cookie_httponly = true
+      cookie_refresh = "4m"
+      cookie_secure = true
+      email_domains = "*"
+      pass_access_token = true
+      pass_authorization_header = true
+      request_logging = true
+      session_store_type = "cookie"
+      set_authorization_header = true
+      set_xauthrequest = true
+      silence_ping_logging = true
+      skip_provider_button = true
+      skip_auth_strip_headers = false
+      skip_jwt_bearer_tokens = true
+      ssl_insecure_skip_verify = true
+      standard_logging = true
+      upstreams = [ "static://200" ]
+      whitelist_domains = ["localhost"]
+
+### 적용해서 oauth2-proxy 배포
+helm repo add oauth2-proxy https://oauth2-proxy.github.io/manifests
+helm install oauth2-proxy oauth2-proxy/oauth2-proxy -f updated_values.yaml
+
+### Keycloak K8S 배포
+
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm install bitnami/keycloak --generate-name --set auth.createAdminUser=true,auth.adminUser=ID,auth.adminPassword=PASSWORD
+: PASSWORD는 K8S 시크릿에 알아서 저장됨
+
+kubectl edit service keycloak
+for nodeport
+
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+   meshConfig:
+     extensionProviders:
+       - name: "oauth2-proxy"
+         envoyExtAuthzHttp:
+           service: "oauth2-proxy.default.svc.cluster.local"
+           port: "80"
+           includeHeadersInCheck: ["authorization", "cookie"]
+           headersToUpstreamOnAllow: ["authorization", "path", "x-auth-request-user", "x-auth-request-email", "x-auth-request-access-token"]
+           headersToDownstreamOnDeny: ["content-type", "set-cookie"]
 
 
 Istio AuthorizationPolicy의 Custom Action을 통해 간단하게 외부 인가 서비스(구글 등)의 대리자가 될 수 있다.
@@ -155,15 +287,16 @@ helm install oauth2-proxy oauth2-proxy/oauth2-proxy -f updated_values.yaml
 
 # istio는 이 OAuth2-proxy가 요청을 가로채서 외부서비스에 전달하고, 토큰 확인 및 검증하고, 다시 서비스로 트래픽을 보낼수 있게 하기위해서 istio의 profile을 수정해야한다. 특히 meshConfig 부분을 수정해야한다.
 
+
 meshConfig:
   extensionProviders:
     - name: "oauth2-proxy"
       envoyExtAuthzHttp:
         service: "oauth2-proxy.default.svc.cluster.local"
-        port: "4180" # The default port used by oauth2-proxy.
-        includeHeadersInCheck: ["authorization", "cookie"] # headers sent to the oauth2-proxy in the check request.
-        headersToUpstreamOnAllow: ["authorization", "path", "x-auth-request-user", "x-auth-request-email", "x-auth-request-access-token"] # headers sent to backend application when request is allowed.
-        headersToDownstreamOnDeny: ["content-type", "set-cookie"] # headers sent back to the client when request is denied.
+        port: "80"
+        includeHeadersInCheck: ["authorization", "cookie"]
+        headersToUpstreamOnAllow: ["authorization", "path", "x-auth-request-user", "x-auth-request-email", "x-auth-request-access-token"]
+        headersToDownstreamOnDekny: ["content-type", "set-cookie"]
 
 # 수정하고 profile을 업데이트한다. 굳이 이거때문에 새로 설치할 필요는 없고 수정이 가능한 것 같다.
 
@@ -176,17 +309,19 @@ apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
   name: example-auth-policy
+  namespace: istio-system
 spec:
   action: CUSTOM
   provider:
     name: "oauth2-proxy"
   rules:
   - to:
-    - operation:
-        hosts:
-        - "demo.example.com"
-        # Uncomment if authorization requried base on path match
-        # paths: ["/api"]  
+    - operation:       
+        paths: ["/app"]
+        notPaths: ["/oauth2/*"]
+  selector:
+    matchLabels:
+      app: istio-ingressgateway
 
 이 예시는 demo.example.com에서 오는 요청이나, 요청 경로가 /api로 시작하는 경우에 요청을 가로채서 외부서비스에 인가받게하는 룰을 설정하는 예시이다.
 
@@ -260,8 +395,452 @@ Istio ingress gateway
 # Keycloak K8S 배포
 
 helm repo add bitnami https://charts.bitnami.com/bitnami
-helm install bitnami/keycloak --generate-name --set auth.createAdminUser=true,auth.adminUser=ID,auth.adminPassword=PASSWORD
+helm install keycloak bitnami/keycloak --set auth.adminUser=admin,auth.adminPassword=admin
+
+helm install keycloak oci://registry-1.docker.io/bitnamicharts/keycloak --set auth.adminUser=admin,auth.adminPassword=admin
+
 : PASSWORD는 K8S 시크릿에 알아서 저장됨
 
 kubectl edit service keycloak
 for nodeport
+
+
+
+
+oauth2-proxy를 외부 공급자로 설정
+
+/auth 경로 제외하고는 모두 프록시에게 검증받도록 authorizationpolicy 설정
+
+사용자 브라우저 클러스터에 접근
+
+게이트웨이는 외부provider인 oauth2-proxy에 cookie, authrization 헤더 전달
+
+프록시는 헤더 확인
+
+- cookie 없으면 keycloak에 요청
+
+keycloak은 브라우저에 access code 응답
+
+브라우저는 프록시에 요청
+
+토큰은 프록시 세션에 저장하고 auth
+
+- cookie는 있는데 authorization 없으면 프록시 세션 확인
+
+확인되면 authrization 헤더에 세션에 저장되어있던 토큰 담아서 200 응답
+
+- authorization 있는데 access code면 코드 가지고 키클락에 요청
+
+키클락은 코드 보고 프록시에 토큰 발급해서 응답
+
+프록시 세션이 토큰 저장하고 authorization 헤더에 토큰 담아서 리다이렉션
+
+브라우저는 토큰 헤더 가지고 게이트웨이 접근
+
+게이트웨이는 프록시에게 인가 포워딩
+
+프록시는 authorization 헤더에 토큰 보고 200 응답 및 헤더 추가
+
+- authorization 있는데 토큰이면 200 응답하고 헤더 추가
+
+
+
+https://oauth2-proxy.github.io/oauth2-proxy/docs/configuration/oauth_provider#keycloak-oidc-auth-provider
+
+https://wiki.onap.org/pages/viewpage.action?pageId=162105420
+
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: oauth-proxy
+  name: oauth-proxy
+spec:
+  type: NodePort
+  selector:
+    app: oauth-proxy
+  ports:
+  - name: http-oauthproxy
+    port: 4180
+    nodePort: 31023
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: oauth-proxy
+  name: oauth-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "oauth-proxy"
+  template:
+    metadata:
+      labels:
+        app: oauth-proxy
+    spec:
+      containers:
+      - name: oauth-proxy
+        image: "quay.io/oauth2-proxy/oauth2-proxy:v7.2.0"
+        ports:
+        - containerPort: 4180
+        args:
+          - --http-address=0.0.0.0:4180
+          - --upstream=http://echo:80
+          - --set-xauthrequest=true
+          - --pass-host-header=true
+          - --pass-access-token=true
+        env:
+          # OIDC Config
+          - name: "OAUTH2_PROXY_PROVIDER"
+            value: "google"
+          - name: "OAUTH2_PROXY_OIDC_ISSUER_URL"
+            value: "http://test-nlb-b4a2aa0a60c67255.elb.ap-northeast-2.amazonaws.com/realms/my-realm"
+          - name: "OAUTH2_PROXY_CLIENT_ID"
+            value: "oauth2-proxy-client"
+          - name: "OAUTH2_PROXY_CLIENT_SECRET"
+            value: "JGEQtkrdIc6kRSkrs89BydnfsEv3VoWO"
+          # Cookie Config
+          - name: "OAUTH2_PROXY_COOKIE_SECURE"
+            value: "false"
+          - name: "OAUTH2_PROXY_COOKIE_SECRET"
+            value: "ZzBkN000Wm0pQkVkKUhzMk5YPntQRUw_ME1oMTZZTy0="
+          - name: "OAUTH2_PROXY_COOKIE_DOMAINS"
+            value: "*"
+          # Proxy config
+          - name: "OAUTH2_PROXY_EMAIL_DOMAINS"
+            value: "*"
+          - name: "OAUTH2_PROXY_WHITELIST_DOMAINS"
+            value: "*"
+          - name: "OAUTH2_PROXY_HTTP_ADDRESS"
+            value: "0.0.0.0:4180"
+          - name: "OAUTH2_PROXY_SET_XAUTHREQUEST"
+            value: "true"
+          - name: OAUTH2_PROXY_PASS_AUTHORIZATION_HEADER
+            value: "true"
+          - name: OAUTH2_PROXY_SSL_UPSTREAM_INSECURE_SKIP_VERIFY
+            value: "true"
+          - name: OAUTH2_PROXY_SKIP_PROVIDER_BUTTON
+            value: "true"
+          - name: OAUTH2_PROXY_SET_AUTHORIZATION_HEADER
+            value: "true"
+
+
+
+
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: echo
+spec:
+  type: ClusterIP
+  selector:
+    app: echo
+  ports:
+  - name: echo
+    port: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: echo
+spec:
+  selector:
+    matchLabels:
+      app: echo
+  template:
+    metadata:
+      labels:
+        app: echo
+    spec:
+      containers:
+      - name: port
+        image: nginxdemos/hello
+        ports:
+        - containerPort: 80
+
+
+
+
+
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  meshConfig:
+    accessLogFile: /dev/stdout
+    extensionProviders:
+    - name: "oauth2-proxy"
+      envoyExtAuthzHttp:
+        service: "oauth2-proxy-1694621050.default.svc.cluster.local"
+        port: "4180"
+        includeHeadersInCheck: ["authorization", "cookie","x-forwarded-access-token","x-forwarded-user","x-forwarded-email","x-forwarded-proto","proxy-authorization","user-agent","x-forwarded-host","from","x-forwarded-for","accept","x-auth-request-redirect"]
+        headersToUpstreamOnAllow: ["authorization", "path", "x-auth-request-user", "x-auth-request-email", "x-auth-request-access-token","x-forwarded-access-token"]
+        headersToDownstreamOnDeny: ["content-type", "set-cookie"]
+
+
+
+
+
+
+
+
+
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: gateway
+  namespace : istio-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - '*'
+
+
+
+
+
+
+
+metadata:
+  name: gateway-vs
+spec:
+  hosts:
+    - '*'
+  gateways: 
+    - istio-system/test-gateway
+  http:
+    - match:
+      - uri:
+          prefix: /oauth2
+      route:
+      - destination:
+          host: oauth-proxy.default.svc.cluster.local
+          port:
+            number: 4180
+    - match:
+      - uri:
+          prefix: /
+      route:
+      - destination:
+          host: echo.default.svc.cluster.local
+          port:
+            number: 3000
+
+
+
+
+
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: policy
+  namespace: istio-system  
+spec:
+  action: CUSTOM
+  provider:
+    name: "oauth2-proxy"
+  rules:
+  - to:
+    - operation:
+        paths: ["/app"]
+  selector:
+    matchLabels:
+      app: istio-ingressgateway
+# 이건 app만 제외하고 검증하겠다는 뜻
+# /app 만 검증하려면 아래같이 수정
+
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: policy
+  namespace: default
+spec:
+  action: CUSTOM
+  provider:
+    name: "oauth2-proxy"
+  rules:
+  - to:
+    - operation:
+        paths: ["/oauth"]
+
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+ name: allow-all
+ namespace: istio-system
+spec:
+ rules:
+ - {}
+ selector:
+  matchLabels:
+   app: istio-ingressgateway
+
+
+
+
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: oauth2-ingress
+  namespace: istio-system
+spec:
+  workloadSelector:
+    labels:
+      istio: ingressgateway
+  configPatches:
+  - applyTo: CLUSTER
+    match:
+      cluster:
+        service: oauth-proxy
+    patch:
+      operation: ADD
+      value:
+        name: oauth
+        dns_lookup_family: V4_ONLY
+        type: LOGICAL_DNS
+        connect_timeout: 10s
+        lb_policy: ROUND_ROBIN
+        transport_socket:
+          name: envoy.transport_sockets.tls
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+            sni: oauth2.googleapis.com
+        load_assignment:
+          cluster_name: oauth
+          endpoints:
+          - lb_endpoints:
+            - endpoint:
+                address:
+                  socket_address:
+                    address: oauth2.googleapis.com
+                    port_value: 443
+  - applyTo: HTTP_FILTER
+    match:
+      context: GATEWAY
+      listener:
+        filterChain:
+          filter:
+            name: "envoy.http_connection_manager"
+            subFilter:
+              name: "envoy.filters.http.jwt_authn"
+    patch:
+      operation: INSERT_BEFORE
+      value:
+       name: envoy.filters.http.oauth2
+       typed_config:
+         "@type": type.googleapis.com/envoy.extensions.filters.http.oauth2.v3alpha.OAuth2
+         config:
+          token_endpoint:
+            cluster: oauth
+            uri: https://oauth2.googleapis.com/token
+            timeout: 3s
+          authorization_endpoint: https://accounts.google.com/o/oauth2/v2/auth
+          redirect_uri: "https://%REQ(:authority)%/_oauth2_callback"
+          redirect_path_matcher:
+            path:
+              exact: /_oauth2_callback
+          signout_path:
+            path:
+              exact: /signout
+          credentials:
+            client_id: myclientid.apps.googleusercontent.com
+            token_secret:
+              name: token
+              sds_config:
+                path: "/etc/istio/config/token-secret.yaml"
+            hmac_secret:
+              name: hmac
+              sds_config:
+                path: "/etc/istio/config/hmac-secret.yaml"
+
+          inline_code: |
+            function envoy_on_response(response_handle)
+              if response_handle:headers():get(":status") == "401" then
+                response_handle:logInfo("Got status 401, redirect to login...")
+                response_handle:headers():replace(":status", "302")
+                response_handle:headers():add("location", "https://naver.com")
+              end
+            end
+
+
+--set config.provider=keycloak 
+--set config.cient-id=oauth2-proxy-client 
+--set config.client-secret=urkT6SppXC5dpoKegJRH8HfpekxcdUnc
+-set config.redirect-url=http://localhost/oauth2/callback --
+set config.oidc-issuer-url=http://localhost/realms/master -
+set -cookie-secret=
+set config.email-domain="*" --set config.code-challenge-method=S256
+ --set config.upstream=http://localhost/app --
+ set config.login_url=http://localhost/realms/master/protocol/openid-connect/auth --
+ set config.redeem_url=https://localhost/realms/master/protocol/openid-connect/token --
+ set config.validate-url=http://localhost/realms/master/protocol/openid-connect/userinfo --
+ set config.set-xauthrequest=true --
+ # -http-address 
+ set config.pass-access-token=true --
+ set config.pass-authorization-header=true --
+ set config.pass-basic-auth=true 
+ --set config.pass-host-header=true --
+ set config.pass-user-headers=true
+
+
+config:
+  clientID: "oauth2-proxy-client"
+  clientSecret: "01K8s7J1xV8gU8XaotdRUXlF4NHK8329"
+  cookieSecret: "UmRaMTlQajM1a2ordWFYRnlJb2tjWEd2MVpCK2grOFM="
+  cookieName: "_proxy_auth"
+  configFile: |-
+    provider = "keycloak_oidc"
+    oidc_issuer_url="https://localhost:8080/realms/master"
+    profile_url="https://localhost:8080/realms/master/protocol/openid-connect/userinfo"
+    validate_url="https://localhost:8080/realms/master/protocol/openid-connect/userinfo"
+    scope="my-scope openid email profile"
+    pass_host_header = true
+    reverse_proxy = true
+    auth_logging = true
+    cookie_httponly = true
+    cookie_refresh = "4m"
+    cookie_secure = true
+    email_domains = "*"
+    pass_access_token = true
+    pass_authorization_header = true
+    request_logging = true
+    session_store_type = "cookie"
+    set_authorization_header = true
+    set_xauthrequest = true
+    silence_ping_logging = true
+    skip_provider_button = true
+    skip_auth_strip_headers = false
+    skip_jwt_bearer_tokens = true
+    ssl_insecure_skip_verify = true
+    standard_logging = true
+    upstreams = [ "localhost" ]
+    whitelist_domains = [".localhost"]
+
+
+
+  ## Trouble Shooting
+
+  1. sidecar proxy가 없으면 gateway로 라우팅을 할 수 없다.
+  2. 권한이 없는 (/api) 경로로 접근하면 로그인 페이지로 리다이렉팅이 되지 않는다.
+  3. 로그인시 토큰이 생성되는 거 같긴하다. 요청에 담겨서 보내지는데, 403(Forbiden) 오류가 출력된다. 왜? 권한이 없는 토큰인가?
+- role이 할당되지 않아서 그랬음. admin role을 추가해주니까 admin 권한으로 대시보드에 접근 가능.
+- 중요한 건 keycloak말고 /api에 접근했을 때 로그인으로 리다이렉트 시키고, 로그인되면 다시 /api로 보내는게 필요
+  1. Keycloak 서버를 클러스터 외부에 별도 구축하는 과정에서 HTTPS REQUIRED 오류 발생run
+
+
+
+
+
+
+docker run -p 8080:8080 -d -e KEYCLOAK_ADMIN=admin -e KEYCLOAK_ADMIN_PASSWORD=admin -e KC_HTTPS_CERTIFICATE_FILE=/opt/keycloak/conf/server.crt.pem -e KC_HTTPS_CERTIFICATE_KEY_FILE=/opt/keycloak/conf/server.key.pem -e KC_HOSTNAME_STRICT_HTTPS=false quay.io/keycloak/keycloak:latest start-dev
+
+proxy-address-forwarding="true"
